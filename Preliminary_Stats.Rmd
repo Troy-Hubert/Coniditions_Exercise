@@ -771,7 +771,7 @@ Now that we have the test of differences for our covariates by physical activity
 ```{r}
 # val_df <- cbind(val_df,PHC_val,PHC_p)
 # val_df <- cbind(val_df,MHC_val,MHC_p)
-
+val_df
 kbl(val_df) %>%
    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
