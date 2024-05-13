@@ -590,8 +590,15 @@ That's a mouthful! For the following section we will be running code for the ful
 ## Regession Code {.tabset}
 
 ### Block 1: Covariates
-This first block of the stepwise regression will do the same thing as we did for the univariate analysis, being that this was not replicated we did not make a function for it. 
+This first block of the stepwise regression will do the same thing as we did for the univariate analysis, being that this was not replicated we did not make a function for it.
+
+
+
 ```{r,warning=FALSE,message=FALSE,results='hide'}
+
+######### PICK UP HERE ###########
+
+
 ### Part 1 Create values for table
 #1. Run the models
 library(broom)
