@@ -209,14 +209,7 @@ thesis_NHRVS <- mutate(thesis_NHRVS,
                          "1" = "MHC"),
         Any_PHC = recode(Any_PHC,
                          "0" = "No_con",
-                         "1" = "PHC"),
-        LT_Suicide_4cat = as.factor(LT_Suicide_4cat),
-        LT_Suicidal = recode(LT_Suicide_4cat,
-                         "0" = "0",
-                         "1" = "0",
-                         "2" = "1",
-                         "3" = "1"
-                             ))
+                         "1" = "PHC"))
 
 #Filter out NA values
 thesis_NHRVS <- thesis_NHRVS %>%
@@ -307,285 +300,14 @@ The first step in my analysis was to run the multinomial regressions without cov
 1. Runs the multinomial models using `multinom()`
 2. Manually calculates the coefficients _B_, the odds ratios (OR) + 95% Confideince interval (95% CI), and _p_ values
 3. Extracts respective values for each type of comparison (e.g., sufficiently active vs moderatly active)
-4. Returns respective values as a row in a dataframe which can be compiled into a larger data fram per comparison
-
-## Regression Code {.tabset}
-
-### Create `UniThesis()` Function
-```{r}
-# Univariate Logistic Multinomial Regression function
-
-UniThesis<-function(Data,condition,string,contrast){
-
-#1. run model 1
-  df <- multinom(relevel(Ex_3cat,ref = "Insufficient")  ~ condition, data = Data)
-
-#2. run model 2
-  df2 <- multinom(relevel(Ex_3cat,ref = "Moderate") ~ condition, data = Data)
-
-#4 Coefficients 
-  coefs_df <- abs(coef(df))
-  coefs_df2 <- abs(coef(df2))
-#5. Odds ratio
-  OR_df <- exp(coef(df))
-  OR_df2 <- exp(coef(df2))
-#6. OR 95% CI
-  CI_df <- data.frame(exp(confint(df)))
-  CI_df2 <- data.frame(exp(confint(df2)))
-#7. P value function
-  P_value <- function(model) {
-  z <- summary(model)$coefficients/summary(model)$standard.errors
-  p <- (1 - pnorm(abs(z), 0, 1)) * 2
-  return(p[,2])
-  }
-#8 P value 
-  p_val1<- P_value(df)
-  p_val2<- P_value(df2)
-
-#10 Insufficient vs Moderate data frame
-  if(contrast == "Ins_Mod"){
-    variable  = string 
-    statistic = coefs_df[[3]]
-    estimate  = OR_df[[3]]
-    conf.low = CI_df[2,1]
-    conf.high = CI_df[2,2]
-    ci <- paste(round(OR_df[[3]],2), "(",round(CI_df[2,1],2),"-", round(CI_df[2,2],2),")")
-    p.value = p_val1[[1]]
-    r2_change = 0
-    output <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))
-  }
-#11 Insufficient vs Active datafraame
-  if(contrast == "Ins_Act"){
-    variable  = string
-    statistic = coefs_df[[4]]
-    estimate  = OR_df[[4]]
-    conf.low = CI_df[2,3]
-    conf.high = CI_df[2,4]
-    ci <- paste(round(OR_df[[4]],2), "(",round(CI_df[2,3],2),"-", round(CI_df[2,4],2),")")
-    p.value = p_val1[[2]]
-    r2_change = 0
-    output <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))
-    }
-#12 Active vs Moderate table 
-  if(contrast == "Act_Mod"){
-    variable  = string  
-    statistic = coefs_df2[[4]]
-    estimate  = OR_df2[[4]]
-    conf.low = CI_df2[2,3]
-    conf.high = CI_df2[2,4]
-    ci <- paste(round(OR_df2[[4]],2),"(",round(CI_df2[2,3],2),"-", round(CI_df2[2,4],2),")")
-    p.value = p_val2[[2]]
-    r2_change = 0
-    output <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))
-  }
-  return(output)
-}
-```
-
-### Running `UniThesis()` 
-
-Now that we have a function, we need to run it. The `UniThesis()` function is for each health condition and compiles it into one larger data frame `Ins_Mod_Uni`. The code below is used to extract values for the Insufficient vs Sufficiently active comparisons. 
-
-#### Insufficient vs moderate
-```{r,results='hide'}
-### Physical Health Conditions 
-#1. Any Disability
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Any_Disability,"Any Disability", "Ins_Mod"))
-#2. Arthritis
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Arthritis,"Arthritis", "Ins_Mod"))
-#3. Asthma
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Athsma,"Athsma", "Ins_Mod"))
-#4. Cancer
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Cancer,"Cancer", "Ins_Mod"))
-#5. Chronic Pain
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Chron_pain,"Chronic Pain", "Ins_Mod"))
-#6. Diabetes
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Diabetes,"Diabetes", "Ins_Mod"))
-#7. Heart Attack
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Hrt_atk,"Heart Attack", "Ins_Mod"))
-#8. Heart Disease
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Hrt_dis,"Heart Disease", "Ins_Mod"))
-#9. High Cholesterol
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$High_chol,"High Cholesterol", "Ins_Mod"))
-#10. Hypertension
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$High_bld_press,"Hypertension", "Ins_Mod"))
-#11. Kidney Disease
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Kid_dis,"Kidney Disease", "Ins_Mod"))
-#12. Liver Disease
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Liv_dis,"Liver Disease", "Ins_Mod"))
-#13. Migrane
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Migrane,"Migrane", "Ins_Mod"))
-#14. MS
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$MS,"MS", "Ins_Mod"))
-#15. Osteoporosis
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Osteoporosis,"Osteoporosis", "Ins_Mod"))
-#16. Rheumatoid Arthritis
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Rhum_arth,"RA", "Ins_Mod"))
-#17. Stroke
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Stroke,"Stroke", "Ins_Mod"))
-### Mental Health Conditions
-#18. Alcohol Use Disorder
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_AUD,"AUD", "Ins_Mod"))
-#19. Drug Use Disorder
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_DUD,"DUD", "Ins_Mod"))
-#20. Major Depressive Disorder 
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_MDD,"MDD", "Ins_Mod"))
-#21 Nicotine Dependence 
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_NicotineDep,"Nicotine Dep", "Ins_Mod"))
-#22 Posttraumatic Stress disorder
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_PTSD,"PTSD", "Ins_Mod"))
-#23. Suicidality
-Ins_Mod_Uni<-rbind(Ins_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_Suicidal,"Suicidality", "Ins_Mod"))
-Ins_Mod_Uni <- Ins_Mod_Uni[-(1),]
-
-
-```
-
-**Lets look at the table!**
-```{r}
-knitr::kable(Ins_Mod_Uni[1:3,]) %>%
-    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
-
-```
-
-We will repeat this step for the Insufficient vs active comparison (Ins_Act) and Active vs Moderate Comparison (Act_Mod). As most of the analysis in this markdown are repeated I will only be showing the first one, and not the 2 other comparisons to save space.
-
-```{r,include =FALSE}
-##### INS_ACT
-### Physical Health Conditions 
-#1. Any Disability
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Any_Disability,"Any Disability", "Ins_Act"))
-#2. Arthritis
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Arthritis,"Arthritis", "Ins_Act"))
-#3. Asthma
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Athsma,"Athsma", "Ins_Act"))
-#4. Cancer
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Cancer,"Cancer", "Ins_Act"))
-#5. Chronic Pain
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Chron_pain,"Chronic Pain", "Ins_Act"))
-#6. Diabetes
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Diabetes,"Diabetes", "Ins_Act"))
-#7. Heart Attack
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Hrt_atk,"Heart Attack", "Ins_Act"))
-#8. Heart Disease
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Hrt_dis,"Heart Disease", "Ins_Act"))
-#9. High Cholesterol
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$High_chol,"High Cholesterol", "Ins_Act"))
-#10. Hypertension
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$High_bld_press,"Hypertension", "Ins_Act"))
-#11. Kidney Disease
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Kid_dis,"Kidney Disease", "Ins_Act"))
-#12. Liver Disease
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Liv_dis,"Liver Disease", "Ins_Act"))
-#13. Migrane
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Migrane,"Migrane", "Ins_Act"))
-#14. MS
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$MS,"MS", "Ins_Act"))
-#15. Osteoporosis
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Osteoporosis,"Osteoporosis", "Ins_Act"))
-#16. Rheumatoid Arthritis
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Rhum_arth,"RA", "Ins_Act"))
-#17. Stroke
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Stroke,"Stroke", "Ins_Act"))
-### Mental Health Conditions
-#18. Alcohol Use Disorder
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_AUD,"AUD", "Ins_Act"))
-#19. Drug Use Disorder
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_DUD,"DUD", "Ins_Act"))
-#20. Major Depressive Disorder 
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_MDD,"MDD", "Ins_Act"))
-#21 Nicotine Dependence 
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_NicotineDep,"Nicotine Dep", "Ins_Act"))
-#22 Posttraumatic Stress disorder
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_PTSD,"PTSD", "Ins_Act"))
-#23. Suicidality
-Ins_Act_Uni<-rbind(Ins_Act_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_Suicidal,"Suicidality", "Ins_Act"))
-Ins_Act_Uni <- Ins_Act_Uni[-(1),]
-Ins_Act_Uni
-##### ACT_MOD
-
-### Physical Health Conditions 
-#1. Any Disability
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Any_Disability,"Any Disability", "Act_Mod"))
-#2. Arthritis
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Arthritis,"Arthritis", "Act_Mod"))
-#3. Asthma
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Athsma,"Athsma", "Act_Mod"))
-#4. Cancer
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Cancer,"Cancer", "Act_Mod"))
-#5. Chronic Pain
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Chron_pain,"Chronic Pain", "Act_Mod"))
-#6. Diabetes
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Diabetes,"Diabetes", "Act_Mod"))
-#7. Heart Attack
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Hrt_atk,"Heart Attack", "Act_Mod"))
-#8. Heart Disease
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Hrt_dis,"Heart Disease", "Act_Mod"))
-#9. High Cholesterol
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$High_chol,"High Cholesterol", "Act_Mod"))
-#10. Hypertension
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$High_bld_press,"Hypertension", "Act_Mod"))
-#11. Kidney Disease
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Kid_dis,"Kidney Disease", "Act_Mod"))
-#12. Liver Disease
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Liv_dis,"Liver Disease", "Act_Mod"))
-#13. Migrane
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Migrane,"Migrane", "Act_Mod"))
-#14. MS
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$MS,"MS", "Act_Mod"))
-#15. Osteoporosis
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Osteoporosis,"Osteoporosis", "Act_Mod"))
-#16. Rheumatoid Arthritis
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Rhum_arth,"RA", "Act_Mod"))
-#17. Stroke
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$Stroke,"Stroke", "Act_Mod"))
-### Mental Health Conditions
-#18. Alcohol Use Disorder
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_AUD,"AUD", "Act_Mod"))
-#19. Drug Use Disorder
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_DUD,"DUD", "Act_Mod"))
-#20. Major Depressive Disorder 
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_MDD,"MDD", "Act_Mod"))
-#21 Nicotine Dependence 
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_NicotineDep,"Nicotine Dep", "Act_Mod"))
-#22 Posttraumatic Stress disorder
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_PTSD,"PTSD", "Act_Mod"))
-#23. Suicidality
-Act_Mod_Uni<-rbind(Act_Mod_Uni,UniThesis(thesis_NHRVS,thesis_NHRVS$LT_Suicidal,"Suicidality", "Act_Mod"))
-Act_Mod_Uni <- Act_Mod_Uni[-(1),]
-Act_Mod_Uni
-```
-### Export as CSV
-```{r}
-write.csv(Ins_Act_Uni, "~/Desktop/Coding/data/Ins_Act_Uni.csv")
-write.csv(Ins_Mod_Uni, "~/Desktop/Coding/data/Ins_Mod_Uni.csv")
-write.csv(Act_Mod_Uni, "~/Desktop/Coding/data/Act_Mod_Uni.csv")
-```
-
-## Varience explained by health conditions alone
-
-```{r}
-# Variance explained:
-Uni_R_AD <- multinom(relevel(Ex_3cat,ref = "Insufficient")  ~ Any_Disability, data = thesis_NHRVS)
-Uni_R_MS <- multinom(relevel(Ex_3cat,ref = "Insufficient")  ~ MS, data = thesis_NHRVS)
-print(paste0("The varaince explained by physical health conditions for the univariate model ranges from ",
-     round(r2(Uni_R_MS)[[1]],5)," to ", round(r2(Uni_R_AD)[[1]],5)
-     ))
-
-thesis_NHRVS$LT_NicotineDep
-Uni_R_ND <- multinom(relevel(Ex_3cat,ref = "Insufficient")  ~ LT_NicotineDep, data = thesis_NHRVS)
-Uni_R_PTSD <- multinom(relevel(Ex_3cat,ref = "Insufficient")  ~ LT_PTSD, data = thesis_NHRVS)
-print(paste0("The varaince explained by mental health conditions for the univariate model ranges from ",
-     round(r2(Uni_R_PTSD)[[1]],5)," to ", round(r2(Uni_R_ND)[[1]],5)
-     ))
-```
+4. Returns respective values as a row in a data frame which can be compiled into a larger data frame per comparison
 
 # Step Wise Multivariate Logistic Multinomial Regression
-That's a mouthful! For the following section we will be running code for the full regression model, extracting values like we did for the univariate function, and putting these values into tables for the 3 comparisons at each of the 3 blocks. The blocks of this regession are as follows:
+That's a mouthful! For the following section we will be running code for the full regression model, The blocks of this regession are as follows:
 
-1. Covariates: Sociodemograpahic and health variables
-2. Physical and Mental Health Functioning: The short form 8 - MCS and PCS 
-3. Health Conditions: Each health condition will be ran as a seperate regression and compiled into one dataframe
+1. Covariates: Sociodemograpahic, military, and health variables
+2. Physical health conditions
+3. Mental Health Conditions
 
 ## Regession Code {.tabset}
 
@@ -595,82 +317,95 @@ This first block of the stepwise regression will do the same thing as we did for
 
 
 ```{r,warning=FALSE,message=FALSE,results='hide'}
-
 ######### PICK UP HERE ###########
-
+# age, gender, race, educational attainment, relationship status, and income), PCS scores, number of lifetime potentially traumatic events, and combat veteran status
 
 ### Part 1 Create values for table
 #1. Run the models
-library(broom)
+library(broom) #for tidy models
+library(fuzzySim) ## For FDR adjusted p values
 Cov_Reg<-glm(Ex_rec~Age
  + College 
+ + White_Race
  + Married_Partnered
  + Income_60k_plus 
  + YN_work 
  + BMI 
  + Combat_Veteran 
- + Yr5_Military 
  + TOTAL_TRAUMAS, thesis_NHRVS,family="binomial") 
+
+Cov_Reg_sum <- summary(Cov_Reg)
+Cov_Reg_sum <- tidy(Cov_Reg) 
 
 #2. Coefficients 
   coefs_Cov_Reg <- abs(coef(Cov_Reg))
+  coefs_Cov_Reg 
 #3. Odds ratio
   OR_Cov_Reg <- exp(coef(Cov_Reg))
-tidy_summary(OR_Cov_Reg)
-
 
 #4. OR 95% CI
-  CI_Cov_Reg <- data.frame(exp(confint(Cov_Reg)))
-#5. P value 
-  P_value <- function(model) {
-  z <- summary(model)$coefficients/summary(model)$standard.errors
-  p <- (1 - pnorm(abs(z), 0, 1)) * 2
-  return(p)
-  }
-  p_val1<- P_value(Cov_Reg)
-  
+  CI_Cov_Reg <- data.frame(round(exp(confint(Cov_Reg)),2))
+
+#5. P values 
+  p_val1<- cbind(Cov_Reg_sum$term ,Cov_Reg_sum$p.value)
+    adj.p <- FDR(pvalues = p_val1)
+    ADJ.p.values <- data.frame(rbind(adj.p$exclude, adj.p$select))
+    ADJ.p.values
+    
 #6. R^2 for model
   R2_Cov_Reg <- performance::r2(Cov_Reg)
 
-  
+#wald
+  library(aod) # Wald test
+  cov_wald<- wald.test(b = coef(Cov_Reg),Sigma = vcov(Cov_Reg),Terms= 2:9)
+  cov_wald$result$chi2[1]
+  wald <- wald.test(b = coef(Cov_Reg),Sigma = vcov(Cov_Reg),Terms=2)$result$chi2[1]
+  for(i in 3:10){
+      wald <- append(wald, wald.test(b = coef(Cov_Reg),Sigma = vcov(Cov_Reg),Terms=i)$result$chi2[1])
+  }
+  wald
 #### Part 2. Make the table and export 
 
 #1. Create data frame
-cov_OR_tab <-  data.frame(cbind(
-  variable = Cov_Reg$coefnames[2:length(Cov_Reg$coefnames)],
-  ODDS = OR_Cov_Reg,
-  p = round(p_val1[2,2:6],4),
-
-  p_val1
+cov_OR_df <-  data.frame(cbind(
+  variable = Cov_Reg_sum$term[2:length(Cov_Reg_sum$term)],
+  Beta = coefs_Cov_Reg[2:length(Cov_Reg_sum$term)],
+  Wald = round(wald,2),
+  OR = OR_Cov_Reg[2:length(OR_Cov_Reg)],
+  CI = paste0("[",CI_Cov_Reg[2:10,1], ",", CI_Cov_Reg[2:10,2], "]"),
+  p = p_val1[2:10,2]
 ))
- p_val1
+cov_OR_df  <- left_join(cov_OR_df, ADJ.p.values,by = join_by(p == p.value))
+cov_OR_tab <- data.frame(cbind(
+  variable = cov_OR_df$variable,
+  Beta = cov_OR_df$Beta,
+  Wald = cov_OR_df$Wald,
+  OR = cov_OR_df$OR,
+  CI = cov_OR_df$CI,
+  p = cov_OR_df$p.adjusted
+))
+
+cov_OR_tab$Beta = round(as.numeric(cov_OR_tab$Beta),2)
+cov_OR_tab$Wald = round(as.numeric(cov_OR_tab$Wald),2)
+cov_OR_tab$OR = round(as.numeric(cov_OR_tab$OR),2)
+cov_OR_tab$p = ifelse(cov_OR_df$p < 0.001, 0.001,
+  round(as.numeric(cov_OR_df$p),2))
 
 #2. create the row for the R2
   paste("Block 1 R^2 =", round((R2_Cov_Reg[[1]]*100),3),"%")
-  variable = paste0("Block 1 R^2 =", round((R2_Cov_Reg[[1]]*100),3),"%")
+  variable = c(
+    paste0("Block 1 X^2=", round(cov_wald$result$chi2[1],2),",p<0.001"),
+    paste0("Block 1 R^2=", round((R2_Cov_Reg[[1]]*100),3),"%")
+  )
+  # 
   R2TAB<-data.frame(cbind(
-                    variable, IvA_ODDS = NA, IvA_p = NA, IvM_ODDS = NA,
-                    IvM_p = NA,AvM_ODDS = NA, AvM_p = NA))
+                      variable,Beta=NA,Wald=NA, OR =NA, CI=NA, p=NA))
 
 #3. Bind the stuff together
   cov_OR_tab <- rbind(R2TAB, cov_OR_tab)
-  # cov_OR_tab <- mutate(cov_OR_tab,
-  #   IvA_ODDS = ifelse(IvA_p <= .05 & IvA_p > .01, paste(IvA_ODDS, "*"),
-  #              ifelse(IvA_p <= .01 & IvA_p > .001, paste(IvA_ODDS, "**"),
-  #              ifelse(IvA_p <= .001, paste(IvA_ODDS, "***"), IvA_ODDS))),
-  #   IvM_ODDS = ifelse(IvM_p <= .05 & IvM_p > .01, paste(IvM_ODDS, "*"),
-  #              ifelse(IvM_p <= .01 & IvM_p > .001, paste(IvM_ODDS, "**"),
-  #              ifelse(IvM_p <= .001, paste(IvM_ODDS, "***"), IvM_ODDS))),
-  #   AvM_ODDS = ifelse(round(AvM_p,2) <= .05 & AvM_p > .01, paste(AvM_ODDS, "*"),
-  #              ifelse(round(AvM_p,2) <= .01 & AvM_p > .001, paste(AvM_ODDS, "**"),
-  #              ifelse(AvM_p <= .001, paste(AvM_ODDS, "***"), AvM_ODDS)))
-  # )
-  
-   
+cov_OR_tab
 #4. Export
-  write_csv(cov_OR_tab,"~/Desktop/Coding/data/covSF8_OR_tab.csv")
-  
-  cov_OR_tab
+  write_csv(cov_OR_tab,"~/Desktop/Coding/data/EX_C_cov_OR_tab.csv")
 ```
 ```{r}
   knitr::kable(cov_OR_tab) %>%
