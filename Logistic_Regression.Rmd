@@ -244,6 +244,7 @@ thesis_NHRVS
 library(MASS)
 library(nnet)
 library(performance)
+library(fuzzySim) #FDR corrections
 ```
 ```{r}
 # str(NHRVS_2019$Race_4Cat)
@@ -416,29 +417,298 @@ cov_OR_tab
     kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
+### Full Model Function
+
+The final step in my analysis was to run the full multinomial model so I can see how the health conditions are associated with physical activity level after controling for covariates. The following `MultiThesis()` function does the following 
+1. Runs the 2 different multinomial models using [multinom()](https://www.rdocumentation.org/packages/nnet/versions/7.3-18/topics/multinom)
+    + Physical health condtions include the MCS
+    + Mental health conditions include the PCS
+2. Manually calculates the coefficients _B_, the odds ratios (OR) + 95% Confideince interval (95% CI), and _p_ values
+3. Extracts respective values for each type of comparison (e.g., sufficiently active vs moderatly active)
+4. Returns respective values as a row in a dataframe which can be compiled into a larger data fram per comparison
+
+
+Make a function to run a chi2 and save the output for all physical health conditions
+```{r}
+Condition_eval<-function(condition,string){
+  chi2 <- xtabs(~thesis_NHRVS$Ex_rec + condition)
+  output <- data.frame(cbind(
+    variable = string, 
+    chi2 = summary(chi2)[[3]], 
+    p = summary(chi2)[[6]]
+  ))
+  return(output)
+}
+```
+
+
+Run the chi2 function to get an output of what variables we should include in our regression model
+```{r,include=FASLSE}
+#1. run model 1
+Conditions_chi<-data.frame(Condition_eval(thesis_NHRVS$Arthritis,"Arthritis"))
+#3. Asthma
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$Athsma,"Athsma"))
+#4. Cancer
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$Cancer,"Cancer"))
+#5. Chronic Pain
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$Chron_pain,"Chronic Pain"))
+#6. Diabetes
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$Diabetes,"Diabetes"))
+#7. Heart Attack
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$Hrt_atk,"Heart Attack"))
+#8. Heart Disease
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$Hrt_dis,"Heart Disease"))
+#9. High Cholesterol
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$High_chol,"High Cholesterol"))
+#10. Hypertension
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$High_bld_press,"Hypertension"))
+#11. Kidney Disease
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$Kid_dis,"Kidney Disease"))
+#12. Liver Disease
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$Liv_dis,"Liver Disease"))
+#13. Migrane
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$Migrane,"Migrane"))
+#14. MS
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$MS,"MS"))
+#15. Osteoporosis
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$Osteoporosis,"Osteoporosis"))
+#16. Rheumatoid Arthritis
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$Rhum_arth,"RA"))
+#17. Stroke
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$Stroke,"Stroke"))
+# ### Mental Health Conditions
+#18. Alcohol Use Disorder
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$AUD_Current,"AUD"))
+#19. Drug Use Disorder
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$DUD_Current,"DUD"))
+#20. Major Depressive Disorder
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$MDD_Current,"MDD"))
+#22 Posttraumatic Stress Disorder
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$PTSD_Current,"PTSD"))
+#23 Generalized Anxiety Disorder
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$GAD_Current,"GAD"))
+```
+
+Create a variable which selects significant health conditions to be used in the multivaraible regression model
+```{r}
+Conditions_X_use <- Conditions_chi |>
+  mutate(
+    p = as.numeric(p),
+    sig = ifelse(
+      as.numeric(Conditions_chi$p) < 0.05, 1, 0)
+  )|>
+  filter(
+    sig == 1
+  )
+
+Conditions_X_use
+```
+
+
+```{r,include=FALSE}
+#2. summary of the model
+  df_summary <- summary(df)
+  df_sum <- tidy(df) 
+#4 Coefficients 
+  coefs_df <- abs(coef(df))
+#5. Odds ratio
+  OR_df <- exp(coef(df))
+#6. OR 95% CI
+  CI_df <- data.frame(round(exp(confint(df)),2))
+#7. P value function
+  p_val1<- cbind(df_sum$term ,df_sum$p.value)
+  adj.p <- FDR(pvalues = p_val1)
+  ADJ.p.values <- data.frame(rbind(adj.p$exclude, adj.p$select))
+  ADJ.p.values
+
+#### Part 2. Make the table and export   
+  
+#1. Create a data frame
+tab_df <-  data.frame(cbind(
+  variable = df_sum$term[2:length(df_sum$term)],
+  Beta = coefs_df[2:length(df_sum$term)],
+  Wald = round(wald,2),
+  OR = OR_df[2:length(OR_df)],
+  CI = paste0("[",CI_df[2:length(OR_df),1], ",", CI_df[2:length(OR_df),2], "]"),
+  p = p_val1[2:length(length(p_val1[,2])),2]
+))
+#2. left join adjusted p values
+#tab_df  <- left_join(tab_df, ADJ.p.values,by = join_by(p == p.value))
+
+#3. 
+tab_tab <- data.frame(cbind(
+  variable = tab_df$variable,
+  Beta = tab_df$Beta,
+  Wald = tab_df$Wald,
+  OR = tab_df$OR,
+  CI = tab_df$CI,
+  p = tab_df$p
+))
+#round the numbers
+tab_tab$Beta = round(as.numeric(tab_tab$Beta),2)
+tab_tab$Wald = round(as.numeric(tab_tab$Wald),2)
+tab_tab$OR = round(as.numeric(tab_tab$OR),2)
+tab_tab$p = tab_tab$p = round(as.numeric(tab_tab$p),4)
+
+tab_tab[1,1] = string
+
+output <- tab_tab[1,]
+  
+  return(output)
+}
+
+```
+
+
+For fun, Lets run some regressions with the output to see if the covariates interact with these conditions.
+```{r}
+# Multivariate Logistic Multinomial Regression Function
+library(broom)
+Condition_eval_Reg<-function(Data,condition,string){
+
+#1. run model 1
+  df <- glm(Ex_rec  ~ condition + Age + College + White_Race  + Income_60k_plus + Combat_Veteran + 
+                           TOTAL_TRAUMAS + BMI, data = Data,family="binomial")
+  
+#2. summary of the model
+  df_summary <- summary(df)
+  df_sum <- tidy(df) 
+#4 Coefficients 
+  coefs_df <- abs(coef(df))
+#5. Odds ratio
+  OR_df <- exp(coef(df))
+#6. OR 95% CI
+  CI_df <- data.frame(round(exp(confint(df)),2))
+#7. P value function
+  p_val1<- cbind(df_sum$term ,df_sum$p.value)
+  adj.p <- FDR(pvalues = p_val1)
+  ADJ.p.values <- data.frame(rbind(adj.p$exclude, adj.p$select))
+  ADJ.p.values
+
+#### Part 2. Make the table and export   
+  
+#1. Create a data frame
+tab_df <-  data.frame(cbind(
+  variable = df_sum$term[2:length(df_sum$term)],
+  Beta = coefs_df[2:length(df_sum$term)],
+  Wald = round(wald,2),
+  OR = OR_df[2:length(OR_df)],
+  CI = paste0("[",CI_df[2:length(OR_df),1], ",", CI_df[2:length(OR_df),2], "]"),
+  p = p_val1[2:length(length(p_val1[,2])),2]
+))
+#2. left join adjusted p values
+#tab_df  <- left_join(tab_df, ADJ.p.values,by = join_by(p == p.value))
+
+#3. 
+tab_tab <- data.frame(cbind(
+  variable = tab_df$variable,
+  Beta = tab_df$Beta,
+  Wald = tab_df$Wald,
+  OR = tab_df$OR,
+  CI = tab_df$CI,
+  p = tab_df$p
+))
+#round the numbers
+tab_tab$Beta = round(as.numeric(tab_tab$Beta),2)
+tab_tab$Wald = round(as.numeric(tab_tab$Wald),2)
+tab_tab$OR = round(as.numeric(tab_tab$OR),2)
+tab_tab$p = tab_tab$p = round(as.numeric(tab_tab$p),4)
+
+tab_tab[1,1] = string
+
+output <- tab_tab[1,]
+  
+  return(output)
+}
+#Its done!
+```
+
+
+```{r,include=FALS}
+### Physical Health Conditions 
+# Conditions_reg = 0
+
+#2. Arthritis
+Conditions_reg<-data.frame(Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Arthritis,"Arthritis"))
+#3. Asthma
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Athsma,"Athsma"))
+#4. Cancer
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Cancer,"Cancer"))
+#5. Chronic Pain
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Chron_pain,"Chronic Pain"))
+#6. Diabetes
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Diabetes,"Diabetes"))
+#7. Heart Attack
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Hrt_atk,"Heart Attack"))
+#8. Heart Disease
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Hrt_dis,"Heart Disease"))
+#9. High Cholesterol
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$High_chol,"High Cholesterol"))
+#10. Hypertension
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$High_bld_press,"Hypertension"))
+#11. Kidney Disease
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Kid_dis,"Kidney Disease"))
+#12. Liver Disease
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Liv_dis,"Liver Disease"))
+#13. Migrane
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Migrane,"Migrane"))
+#14. MS
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$MS,"MS"))
+#15. Osteoporosis
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Osteoporosis,"Osteoporosis"))
+#16. Rheumatoid Arthritis
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Rhum_arth,"RA"))
+#17. Stroke
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Stroke,"Stroke"))
+### Mental Health Conditions
+#18. Alcohol Use Disorder
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$AUD_Current,"AUD"))
+#19. Drug Use Disorder
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$DUD_Current,"DUD"))
+#20. Major Depressive Disorder 
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$MDD_Current,"MDD"))
+#22 Posttraumatic Stress Disorder
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$PTSD_Current,"PTSD"))
+#23 Generalized Anxiety Disorder
+Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$GAD_Current,"GAD"))
+```
+
+```{r}
+Conditions_R_use <- Conditions_reg |>
+  mutate(
+    signifcant = ifelse(
+      as.numeric(p) < 0.05, 1, 0)
+    ) |>
+  filter(
+    signifcant == 1
+  )
+
+Conditions_R_use
+```
+
+
+
 ### Block 2: Physical Health Conditions
 Block to is idential to block one with the addition of the MCS and PCS to the regression model. We are running two different regession models (i.e., one with the MCS and one with the PCS) so you can see that below. 
 ```{r,warning=FALSE,message=FALSE,results='hide'}
 ### Part 1 Physical health conditions for table
 #1. Run the models
-
 PHC_Reg<-glm(Ex_rec~
              #Covariates
              Age + College + White_Race  +
              Income_60k_plus + Combat_Veteran + 
              TOTAL_TRAUMAS + BMI +
-             #Health Conditions
-             Arthritis + Athsma + Cancer + Chron_pain + Diabetes + Hrt_atk + 
-             Hrt_dis + High_chol + High_bld_press + Kid_dis + Liv_dis +
-             Migrane + MS + Osteoporosis + Rhum_arth + Stroke,
+             #Physical Health Conditions
+             Athsma + Chron_pain + Diabetes+ Hrt_atk + 
+             Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke,
+             #Mental Health conditions
+             # AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current,
              # Data
              data =thesis_NHRVS,
              # Specify type of regression
              family="binomial",weights = weight)
-```
 
 
-```{r,warning=FALSE,message=FALSE,results='hide'}
 summary(PHC_Reg)
 PHC_Reg_sum <- tidy(PHC_Reg) 
 
@@ -446,14 +716,14 @@ PHC_Reg_sum <- tidy(PHC_Reg)
   coefs_PHC_Reg <- abs(coef(PHC_Reg))
   coefs_PHC_Reg
 #3. Odds ratio
-  OR_PHC_Reg <- exp(coef(PHC_Reg)[8:length(coefs_PHC_Reg)])
+  OR_PHC_Reg <- exp(coef(PHC_Reg)[9:length(coefs_PHC_Reg)])
 
 #4. OR 95% CI
-  CI_PHC_Reg <- data.frame(round(exp(confint(PHC_Reg)[8:length(coefs_PHC_Reg),]),2))
+  CI_PHC_Reg <- data.frame(round(exp(confint(PHC_Reg)[9:length(coefs_PHC_Reg),]),2))
 
 #5. P values 
-  p_val1<- cbind(PHC_Reg_sum$term[8:length(coefs_PHC_Reg)], 
-                 PHC_Reg_sum$p.value[8:length(coefs_PHC_Reg)])
+  p_val1<- cbind(PHC_Reg_sum$term[9:length(coefs_PHC_Reg)], 
+                 PHC_Reg_sum$p.value[9:length(coefs_PHC_Reg)])
     adj.p <- FDR(pvalues = p_val1)
     ADJ.p.values <- data.frame(rbind(adj.p$exclude, adj.p$select))
     ADJ.p.values
@@ -465,19 +735,18 @@ PHC_Reg_sum <- tidy(PHC_Reg)
   library(aod) # Wald test
   PHC_wald<- wald.test(b = coef(PHC_Reg),Sigma = vcov(PHC_Reg),Terms= 2:length(coefs_PHC_Reg))
   PHC_wald$result$chi2[1]
-  wald <- wald.test(b = coef(PHC_Reg),Sigma = vcov(PHC_Reg),Terms=8)$result$chi2[1]
-  for(i in 9:length(coefs_PHC_Reg)){
+  wald <- wald.test(b = coef(PHC_Reg),Sigma = vcov(PHC_Reg),Terms=9)$result$chi2[1]
+  for(i in 10:length(coefs_PHC_Reg)){
       wald <- append(wald, wald.test(b = coef(PHC_Reg),Sigma = vcov(PHC_Reg),Terms=i)$result$chi2[1])
   }
-  wald
 #### Part 2. Make the table and export 
 
 #1. Create data frame
 PHC_Reg_df <-  data.frame(cbind(
-  variable = PHC_Reg_sum$term[8:length(PHC_Reg_sum$term)],
-  Beta = coefs_PHC_Reg[8:length(coefs_PHC_Reg)],
+  variable = PHC_Reg_sum$term[9:length(PHC_Reg_sum$term)],
+  Beta = coefs_PHC_Reg[9:length(coefs_PHC_Reg)],
   Wald = round(wald,2),
-  OR = OR_PHC_Reg[8:length(OR_PHC_Reg)],
+  OR = OR_PHC_Reg,
   CI = paste0("[",CI_PHC_Reg[,1], ",", CI_PHC_Reg[,2], "]"),
   p = p_val1[,2]
 ))
@@ -489,8 +758,11 @@ PHC_Reg_tab <- data.frame(cbind(
   Wald = PHC_Reg_df$Wald,
   OR = PHC_Reg_df$OR,
   CI = PHC_Reg_df$CI,
-  p = PHC_Reg_df$p.adjusted
+  p = PHC_Reg_df$p
+  # p = PHC_Reg_df$p.adjusted
 ))
+
+PHC_Reg_df 
 
 PHC_Reg_tab$Beta = round(as.numeric(PHC_Reg_tab$Beta),2)
 PHC_Reg_tab$Wald = round(as.numeric(PHC_Reg_tab$Wald),2)
@@ -514,9 +786,9 @@ PHC_Reg_tab$p = ifelse(as.numeric(PHC_Reg_df$p) < 0.001, "< 0.001",
 
 #4. Export
   write_csv(PHC_Reg_tab,"~/Desktop/Coding/data/PHC_Reg_tab.csv")
-  write_csv(Full_OR_tab, "~/Desktop/Coding/data/SF8.cov_OR_tab.csv")
+  write_csv(Full_OR_tab, "~/Desktop/Coding/data/EX_Full_OR_tab.csv")
   
-  Full_OR_tab
+  PHC_Reg_tab
 
 ```
 ```{r}
@@ -524,121 +796,115 @@ PHC_Reg_tab$p = ifelse(as.numeric(PHC_Reg_df$p) < 0.001, "< 0.001",
     kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
-### Full Model Function
-
-The final step in my analysis was to run the full multinomial model so I can see how the health conditions are associated with physical activity level after controling for covariates. The following `MultiThesis()` function does the following 
-1. Runs the 2 different multinomial models using [multinom()](https://www.rdocumentation.org/packages/nnet/versions/7.3-18/topics/multinom)
-    + Physical health condtions include the MCS
-    + Mental health conditions include the PCS
-2. Manually calculates the coefficients _B_, the odds ratios (OR) + 95% Confideince interval (95% CI), and _p_ values
-3. Extracts respective values for each type of comparison (e.g., sufficiently active vs moderatly active)
-4. Returns respective values as a row in a dataframe which can be compiled into a larger data fram per comparison
-
+block 3 - mental health conditions
 ```{r}
-# Multivariate Logistic Multinomial Regression Function
+MHC_Reg<-glm(Ex_rec~
+             #Covariates
+             Age + College + White_Race  +
+             Income_60k_plus + Combat_Veteran + 
+             TOTAL_TRAUMAS + BMI +
+             #Physical Health Conditions
+             Athsma + Chron_pain + Diabetes+ Hrt_atk + 
+             Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke +
+             #Mental Health conditions
+             AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current,
+             # Data
+             data =thesis_NHRVS,
+             # Specify type of regression
+             family="binomial",weights = weight)
 
-MultiThesis<-function(Data,condition,string,type,contrast){
 
-#1. run model 1
-  if(type == "PHC"){
-  df <- multinom(relevel(Ex_3cat,ref = "Insufficient")  ~ condition + Age + College + Income_60k_plus + YN_work + BMI + MCS, data = Data)
-  }
-  if(type == "MHC"){ df <- multinom(relevel(Ex_3cat,ref = "Insufficient")  ~ condition + Age + College + Income_60k_plus + YN_work + BMI + PCS, data = Data)
-  }
-#2 Specify the reference group2
-  Data$Ex_3cat_act <- relevel(Data$Ex_3cat, ref = "Moderate")
-#3. run model 2
-  if(type == "PHC"){
-   df2 <- multinom(relevel(Ex_3cat,ref = "Moderate") ~ condition + Age + College + Income_60k_plus + YN_work + BMI + MCS, data = Data)
-  }
-  if(type == "MHC"){ 
-    df2 <- multinom(relevel(Ex_3cat,ref = "Moderate") ~ condition + Age + College + Income_60k_plus + YN_work + BMI + PCS, data = Data)
-  }
-#4 Coefficients 
-  coefs_df <- abs(coef(df))
-  coefs_df2 <- abs(coef(df2))
-#5. Odds ratio
-  OR_df <- exp(coef(df))
-  OR_df2 <- exp(coef(df2))
-#6. OR 95% CI
-  CI_df <- data.frame(exp(confint(df)))
-  CI_df2 <- data.frame(exp(confint(df2)))
-#7. P value function
-  P_value <- function(model) {
-  z <- summary(model)$coefficients/summary(model)$standard.errors
-  p <- (1 - pnorm(abs(z), 0, 1)) * 2
-  return(p[,2])
-  }
-#8 P value 
-  p_val1<- P_value(df)
-  p_val2<- P_value(df2)
+summary(MHC_Reg)
+MHC_Reg_sum <- tidy(MHC_Reg) 
 
-#10 Insufficient vs Moderate data frame
-  if(contrast == "Ins_Mod"){
-    variable  = string 
-    statistic = coefs_df[[3]]
-    estimate  = OR_df[[3]]
-    conf.low = CI_df[2,1]
-    conf.high = CI_df[2,2]
-    ci <- paste(round(OR_df[[3]],2), "(",round(CI_df[2,1],2),"-", round(CI_df[2,2],2),")")
-    p.value = p_val1[[1]]
-    r2_change = 0
-    output <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))
-  }
-#11 Insufficient vs Active datafraame
-  if(contrast == "Ins_Act"){
-    variable  = string
-    statistic = coefs_df[[4]]
-    estimate  = OR_df[[4]]
-    conf.low = CI_df[2,3]
-    conf.high = CI_df[2,4]
-    ci <- paste(round(OR_df[[4]],2), "(",round(CI_df[2,3],2),"-", round(CI_df[2,4],2),")")
-    p.value = p_val1[[2]]
-    r2_change = 0
-    output <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))
-    }
-#12 Active vs Moderate table 
-  if(contrast == "Act_Mod"){
-    variable  = string  
-    statistic = coefs_df2[[4]]
-    estimate  = OR_df2[[4]]
-    conf.low = CI_df2[2,3]
-    conf.high = CI_df2[2,4]
-    ci <- paste(round(OR_df2[[4]],2),"(",round(CI_df2[2,3],2),"-", round(CI_df2[2,4],2),")")
-    p.value = p_val2[[2]]
-    r2_change = 0
-    output <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))
-  }
-  return(output)
-}
+#2. Coefficients 
+  coefs_MHC_Reg <- abs(coef(MHC_Reg))
+  coefs_MHC_Reg
+#3. Odds ratio
+  OR_MHC_Reg <- exp(coef(MHC_Reg)[18:length(coefs_MHC_Reg)])
 
-#Its done!
+#4. OR 95% CI
+  CI_MHC_Reg <- data.frame(round(exp(confint(MHC_Reg)[18:length(coefs_MHC_Reg),]),2))
+
+#5. P values 
+  p_val1<- cbind(MHC_Reg_sum$term[18:length(coefs_MHC_Reg)], 
+                 MHC_Reg_sum$p.value[18:length(coefs_MHC_Reg)])
+    adj.p <- FDR(pvalues = p_val1)
+    ADJ.p.values <- data.frame(rbind(adj.p$exclude, adj.p$select))
+    ADJ.p.values
+    
+#6. R^2 for model
+  R2_MHC_Reg <- performance::r2(MHC_Reg)
+
+#wald
+  library(aod) # Wald test
+  MHC_wald<- wald.test(b = coef(MHC_Reg),Sigma = vcov(MHC_Reg),Terms= 2:length(coefs_MHC_Reg))
+  MHC_wald$result$chi2[1]
+  wald <- wald.test(b = coef(MHC_Reg),Sigma = vcov(MHC_Reg),Terms=18)$result$chi2[1]
+  for(i in 19:length(coefs_MHC_Reg)){
+      wald <- append(wald, wald.test(b = coef(MHC_Reg),Sigma = vcov(MHC_Reg),Terms=i)$result$chi2[1])
+  }
+#### Part 2. Make the table and export 
+
+#1. Create data frame
+MHC_Reg_df <-  data.frame(cbind(
+  variable = MHC_Reg_sum$term[18:length(MHC_Reg_sum$term)],
+  Beta = coefs_MHC_Reg[18:length(coefs_MHC_Reg)],
+  Wald = round(wald,2),
+  OR = OR_MHC_Reg,
+  CI = paste0("[",CI_MHC_Reg[,1], ",", CI_MHC_Reg[,2], "]"),
+  p = p_val1[,2]
+))
+
+MHC_Reg_df  <- left_join(MHC_Reg_df, ADJ.p.values,by = join_by(p == p.value))
+MHC_Reg_tab <- data.frame(cbind(
+  variable = MHC_Reg_df$variable,
+  Beta = MHC_Reg_df$Beta,
+  Wald = MHC_Reg_df$Wald,
+  OR = MHC_Reg_df$OR,
+  CI = MHC_Reg_df$CI,
+  p = MHC_Reg_df$p
+  # p = MHC_Reg_df$p.adjusted
+))
+
+MHC_Reg_df 
+
+MHC_Reg_tab$Beta = round(as.numeric(MHC_Reg_tab$Beta),2)
+MHC_Reg_tab$Wald = round(as.numeric(MHC_Reg_tab$Wald),2)
+MHC_Reg_tab$OR = round(as.numeric(MHC_Reg_tab$OR),2)
+MHC_Reg_tab$p = ifelse(as.numeric(MHC_Reg_df$p) < 0.001, "< 0.001",
+  round(as.numeric(MHC_Reg_df$p),3))
+
+#2. create the row for the R2
+  variable = c(
+    paste0("Block 3 X^2=", round(cov_wald$result$chi2[1],2),",p<0.001"),
+    paste0("Block 3 R^2=", round((R2_MHC_Reg[[1]]),3))  
+  )
+
+  R2TAB<-data.frame(cbind(
+                      variable,Beta=NA,Wald=NA, OR =NA, CI=NA, p=NA))
+
+#3. Bind the stuff together
+  MHC_Reg_tab <- rbind(R2TAB, MHC_Reg_tab)
+  Full_OR_tab <- rbind(Full_OR_tab,MHC_Reg_tab)
+
+#4. Export
+  write_csv(MHC_Reg_tab,"~/Desktop/Coding/data/MHC_Reg_tab.csv")
+  write_csv(Full_OR_tab, "~/Desktop/Coding/data/EX_Full_OR_tab.csv")
+  
+  MHC_Reg_tab
+  Full_OR_tab
+  
 ```
 
-### R^2 Change
-Before we can create the dataframes with the multinomial regession output, I need to find the R^2 change for all of the variables. The following function allows us to look at the [R^2 change](https://easystats.github.io/performance/reference/r2.html) between the covariates and the IV within the multinomial model. As this is a multinomial model, the R^2 change is only observed for the model as a whole. I created the `r2_chan()` function to do the following:
-1. Run a multinomial model without the predictor (i.e., just covariates) and with the predictor (i.e., the full model)
-2. Calculate the R^2 for both models, and find the difference between the covariates and full model.
-3. turn this R^2 change into a percentage, and save it as a string with the % sign. 
 
-```{r,results='hide'}
-#assign the variable to 0
-r2_change = 0
 
-#create the function 
-  r2_chan<-function(condition){
-  multi_cov<-multinom(relevel(Ex_3cat,ref = "Insufficient") ~ Age + College + Income_60k_plus + YN_work + BMI, data = thesis_NHRVS)
-  df <-multinom(relevel(Ex_3cat,ref = "Insufficient") ~ condition + Age + College + Income_60k_plus + YN_work + BMI, data = thesis_NHRVS)
-Delta <-  (r2(df)[[1]] -  r2(multi_cov)[[1]])*100
-if(Delta >= 0.01){
-output <- paste(round(Delta,2), "%")
-}
-if(Delta < 0.01){
-output <- "< 0.01 %"
-}
-return(output)
-  }
-```
+
+
+
+
+
+
 
 Now we get to run the `r2_chan()` function for all of the variables. The code below compiles a data frame of the `R2CHANGE` for each variable within each block of the step wise regression. 
 ```{r,results='hide'}
@@ -712,58 +978,7 @@ each contrast. Being that the function just creates the values needed for each
 condition, we still need to add it to the exsisting data frame (i.e.,rbind())
 
 1. Insufficient vs Moderate Dataframe
-```{r,results="hide"}
-### Physical Health Conditions 
-Ins_Mod = 0
-#1. Any Disability
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$Any_Disability,"Any Disability", "PHC", "Ins_Mod"))
-#2. Arthritis
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$Arthritis,"Arthritis", "PHC", "Ins_Mod"))
-#3. Asthma
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$Athsma,"Athsma", "PHC", "Ins_Mod"))
-#4. Cancer
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$Cancer,"Cancer", "PHC", "Ins_Mod"))
-#5. Chronic Pain
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$Chron_pain,"Chronic Pain", "PHC", "Ins_Mod"))
-#6. Diabetes
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$Diabetes,"Diabetes", "PHC", "Ins_Mod"))
-#7. Heart Attack
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$Hrt_atk,"Heart Attack", "PHC", "Ins_Mod"))
-#8. Heart Disease
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$Hrt_dis,"Heart Disease", "PHC", "Ins_Mod"))
-#9. High Cholesterol
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$High_chol,"High Cholesterol", "PHC", "Ins_Mod"))
-#10. Hypertension
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$High_bld_press,"Hypertension", "PHC", "Ins_Mod"))
-#11. Kidney Disease
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$Kid_dis,"Kidney Disease","PHC", "Ins_Mod"))
-#12. Liver Disease
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$Liv_dis,"Liver Disease", "PHC", "Ins_Mod"))
-#13. Migrane
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$Migrane,"Migrane", "PHC", "Ins_Mod"))
-#14. MS
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$MS,"MS", "PHC", "Ins_Mod"))
-#15. Osteoporosis
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$Osteoporosis,"Osteoporosis", "PHC", "Ins_Mod"))
-#16. Rheumatoid Arthritis
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$Rhum_arth,"RA", "PHC", "Ins_Mod"))
-#17. Stroke
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$Stroke,"Stroke", "PHC", "Ins_Mod"))
-### Mental Health Conditions
-#18. Alcohol Use Disorder
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$LT_AUD,"AUD", "MHC", "Ins_Mod"))
-#19. Drug Use Disorder
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$LT_DUD,"DUD", "MHC", "Ins_Mod"))
-#20. Major Depressive Disorder 
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$LT_MDD,"MDD", "MHC", "Ins_Mod"))
-#21 Nicotine Dependence 
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$LT_NicotineDep,"Nicotine Dep", "MHC", "Ins_Mod"))
-#22 Posttraumatic Stress disorder
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$LT_PTSD,"PTSD", "MHC", "Ins_Mod"))
-#23. Suicidality
-Ins_Mod<-rbind(Ins_Mod,MultiThesis(thesis_NHRVS,thesis_NHRVS$LT_Suicidal,"Suicidality", "MHC", "Ins_Mod"))
-Ins_Mod
-```
+
 We've now compiled all of our helath conditions and added them into the dataframe. However, we still have that pesky row of zeros. We can use negative indexing to remove this row from the dataframe leaving us with just the stuff we care about. 
 ```{r}
 Ins_Mod <- Ins_Mod[-(1),]
