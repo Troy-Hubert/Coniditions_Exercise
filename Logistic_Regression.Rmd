@@ -914,6 +914,7 @@ library(caret)
 
 V <- varImp(MHC_Reg, Scale=FALSE)
 
+V
 
 # For classification, ROC curve analysis is conducted on each predictor. For two class problems, a series of cutoffs is applied to the predictor data to predict the class. The sensitivity and specificity are computed for each cutoff and the ROC curve is computed. The trapezoidal rule is used to compute the area under the ROC curve. This area is used as the measure of variable importance
 
@@ -942,18 +943,20 @@ fit <- glm(MET_min~
              #Covariates
              Age + College + White_Race  +
              Income_60k_plus + Combat_Veteran + 
-             TOTAL_TRAUMAS + BMI +
+             TOTAL_TRAUMAS + BMI + 
              #Physical Health Conditions
-             Athsma + Chron_pain + Diabetes+ Hrt_atk + 
-             Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke +
-             #Mental Health conditions
-             AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current,
+             Athsma + Diabetes + GAD_Current + MDD_Current + DUD_Current,
+             # Athsma + Chron_pain + Diabetes+ Hrt_atk + 
+             # Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke +
+             # #Mental Health conditions
+             # AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current,
              # Data
              data =thesis_NHRVS,
              # Specify weights
              weights = weight)
 
 relimp <- calc.relimp(fit, type = "lmg", importance = TRUE)
+calc.relimp
 
 # View the structure of the relimp object
 str(relimp)
@@ -961,15 +964,47 @@ str(relimp)
 # Plot the relative importance of predictors
 plot(relimp)
 
-####### Bootstraped relimp
-
-boot_rel <- boot.relimp(fit, type = "lmg", 
-                        nboot = 1000)
- 
-boot_eval <- booteval.relimp(boot_rel)
-plot(boot_eval)
+#order of which variables are important
 
 
+impo_values<- unlist(relimp@lmg)
+
+attri <- attributes(impo_values)
+
+impo_order<- unlist(relimp@lmg.rank)
+
+impo_df <- data.frame(
+  cbind(
+    vars = attri$names,
+    round(impo_values*100,2),
+    impo_order
+  )
+)
+colnames(impo_df) <- c("vars","R2","Order")
+impo_df
+
+impo_values
+attri$names
+
+# ####### Bootstraped relimp
+# 
+# boot_rel <- boot.relimp(fit, type = "lmg", 
+#                         nboot = 10)
+#  
+# boot_eval <- booteval.relimp(boot_rel)
+# plot(boot_eval)
+# 
+# 
+# 
+
+ggplot2::ggplot(impo_df, aes(x=reorder(rownames(impo_df),R2), y=R2)) +
+geom_point( color="blue", size=4, alpha=0.6)+
+geom_segment( aes(x=rownames(impo_df), xend=rownames(impo_df), y=0, yend=R2), 
+color='skyblue') +
+xlab('Variable')+
+ylab('% of Response Variance')+
+theme_light() +
+coord_flip() 
 
 ```
 
