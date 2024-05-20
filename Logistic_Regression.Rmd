@@ -945,11 +945,10 @@ fit <- glm(MET_min~
              Income_60k_plus + Combat_Veteran + 
              TOTAL_TRAUMAS + BMI + 
              #Physical Health Conditions
-             Athsma + Diabetes + GAD_Current + MDD_Current + DUD_Current,
-             # Athsma + Chron_pain + Diabetes+ Hrt_atk + 
-             # Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke +
-             # #Mental Health conditions
-             # AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current,
+             Athsma + Chron_pain + Diabetes+ Hrt_atk +
+             Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke +
+             #Mental Health conditions
+             AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current,
              # Data
              data =thesis_NHRVS,
              # Specify weights
@@ -968,9 +967,7 @@ plot(relimp)
 
 
 impo_values<- unlist(relimp@lmg)
-
 attri <- attributes(impo_values)
-
 impo_order<- unlist(relimp@lmg.rank)
 
 impo_df <- data.frame(
@@ -981,10 +978,9 @@ impo_df <- data.frame(
   )
 )
 colnames(impo_df) <- c("vars","R2","Order")
-impo_df
 
-impo_values
-attri$names
+impo_df$R2 <- as.numeric(impo_df$R2)
+impo_df$Order <- as.numeric(impo_df$Order)
 
 # ####### Bootstraped relimp
 # 
@@ -997,17 +993,115 @@ attri$names
 # 
 # 
 
-ggplot2::ggplot(impo_df, aes(x=reorder(rownames(impo_df),R2), y=R2)) +
+ggplot2::ggplot(impo_df, aes(x=reorder(vars,-Order),y=R2),
+                ) +
+  geom_hline(yintercept = 1,linetype="dashed",alpha = .25) +
+  geom_hline(yintercept = .5,linetype="dashed",alpha = .25) +
+  geom_bar(stat = "identity", color = "Black") +
+  ggtitle("% Varaince (i.e., R^2) explaiend by predictors of Physical Activity") +
+  theme_classic() +
+  xlab('Variable')+
+  ylab('% of Response Variance')+
+  ylim(0,1.5)+
+  geom_text(aes(label = R2), vjust =.5, hjust = -.5, color = "black")+
+  coord_flip() 
+              
+ggplot2::ggplot(V, aes(x=reorder(rownames(V),Overall), y=Overall)) +
 geom_point( color="blue", size=4, alpha=0.6)+
-geom_segment( aes(x=rownames(impo_df), xend=rownames(impo_df), y=0, yend=R2), 
+geom_segment( aes(x=rownames(V), xend=rownames(V), y=0, yend=Overall), 
 color='skyblue') +
 xlab('Variable')+
-ylab('% of Response Variance')+
+ylab('Overall Importance')+
 theme_light() +
 coord_flip() 
-
 ```
 
+```{r}
+install.packages("bruceR")
+library(bruceR)
+
+mod_NHRVS <- thesis_NHRVS |>
+  mutate(
+    GAD_Current = recode(GAD_Current,
+      "0" = "1",
+      "1" = "2"
+    ),
+    Diabetes = recode(Diabetes,
+      "0" = "1",
+      "1" = "2"
+    )
+  )
+
+str(mod_NHRVS$Diabetes)
+
+thesis_NHRVS$High_bld_press
+
+attri$names
+
+###MCS
+#insignificant moderation
+PROCESS(thesis_NHRVS,
+  x="High_bld_press", y="Ex_rec", mods = "MCS", covs = c("Age", "College", "White_Race",
+  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
+)
+
+#nonsignficiant
+PROCESS(thesis_NHRVS,
+  x="Diabetes", y="Ex_rec", mods = "MCS", covs = c("Age", "College", "White_Race",
+  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
+)
+
+#Significant
+PROCESS(thesis_NHRVS,
+  x="High_chol", y="Ex_rec", mods = "MCS", covs = c("Age", "College", "White_Race",
+  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
+)
+
+#Significant
+PROCESS(thesis_NHRVS,
+  x="GAD_Current", y="Ex_rec", mods = "PCS", covs = c("Age", "College", "White_Race",
+  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
+)
+
+#nonsignficiant
+PROCESS(thesis_NHRVS,
+  x="Diabetes", y="Ex_rec", mods = "MCS", covs = c("Age", "College", "White_Race",
+  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI")  
+)
+
+##### Diabetes
+PROCESS(thesis_NHRVS,
+  x="Diabetes", y="Ex_rec", mods = "GAD_Current", covs = c("Age", "College", "White_Race",
+  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
+)
+
+PROCESS(thesis_NHRVS,
+  x="Diabetes", y="Ex_rec", mods = "MDD_Current", covs = c("Age", "College", "White_Race",
+  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
+)
+
+PROCESS(thesis_NHRVS,
+  x="Diabetes", y="Ex_rec", mods = "DUD_Current", covs = c("Age", "College", "White_Race",
+  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
+)
+
+#### Asthma
+PROCESS(thesis_NHRVS,
+  x="Athsma", y="Ex_rec", mods = "GAD_Current", covs = c("Age", "College", "White_Race",
+  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
+)
+
+PROCESS(thesis_NHRVS,
+  x="Athsma", y="Ex_rec", mods = "MDD_Current", covs = c("Age", "College", "White_Race",
+  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
+)
+
+PROCESS(thesis_NHRVS,
+  x="Athsma", y="Ex_rec", mods = "DUD_Current", covs = c("Age", "College", "White_Race",
+  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI")
+)
+
+```
 
 
 
