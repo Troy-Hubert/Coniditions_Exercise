@@ -104,7 +104,7 @@ thesis_NHRVS<- thesis_NHRVS %>%
          MET_min = MET_total* 15,
          MET_min_W = ifelse(MET_min > 2500, 2500, MET_min),
             # Total METs per week times the duration of exercise
-         Ex_rec = as.factor(ifelse(MET_min >= 500, "Sufficient", "Insufficient")),
+         Ex_rec = as.factor(ifelse(MET_min >= 500, "Sufficient", "Inufficient")),
             # Meeting activity levels (i.e., sufficient vs insufficient)
          Ex_3cat = as.factor(ifelse(MET_min < 290, 1,
                               ifelse(MET_min < 500 & MET_min >= 290, 2,3))),
@@ -252,6 +252,7 @@ library(fuzzySim) #FDR corrections
 # tab<- (tab[1:4]/length(NHRVS_2019$Race_4Cat))*100
 # tab
 
+str(thesis_NHRVS$Ex_rec)
 ```
 
 
@@ -938,8 +939,10 @@ library(rwa)
 RElative importance analysis
 ```{r}
 library(relaimpo)
+
+
  
-fit <- glm(MET_min~
+fit1 <- glm(MET_min~
              #Covariates
              Age + College + White_Race  +
              Income_60k_plus + Combat_Veteran + 
@@ -954,7 +957,7 @@ fit <- glm(MET_min~
              # Specify weights
              weights = weight)
 
-relimp <- calc.relimp(fit, type = "lmg", importance = TRUE)
+relimp <- calc.relimp(fit1, type = "lmg", importance = TRUE)
 calc.relimp
 
 # View the structure of the relimp object
@@ -1068,43 +1071,334 @@ PROCESS(thesis_NHRVS,
   x="Diabetes", y="Ex_rec", mods = "MCS", covs = c("Age", "College", "White_Race",
   "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI")  
 )
+```
 
-##### Diabetes
-PROCESS(thesis_NHRVS,
-  x="Diabetes", y="Ex_rec", mods = "GAD_Current", covs = c("Age", "College", "White_Race",
-  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
-)
+## Interactions of health conditions on physical activity recomendations
+```{r}
+# library(bruceR)
+# # assign a vector of covariates to be used in analysis
+# covs = c("Age", "College", "White_Race",
+#   "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI")
+# 
+# ##### Diabetes
+# PROCESS(thesis_NHRVS, # Data
+#   x="Diabetes",  # Health conditoin
+#   mods = "GAD_Current",  # Moderator
+#   y="Ex_rec", # outcome variable
+#   covs = covs) # covariates
+# 
+# PROCESS(thesis_NHRVS,
+#   x="Diabetes", mods = "MDD_Current",
+#   y="Ex_rec",
+#   covs = covs)
+# 
+# PROCESS(thesis_NHRVS,
+#   x="Diabetes", mods = "DUD_Current",
+#   y="Ex_rec",
+#   covs = covs)
+# 
+# #### Asthma
+# PROCESS(thesis_NHRVS,
+#   x="Athsma", mods = "Total_HC",
+#   y="Ex_rec",
+#   covs = covs)
+# 
+# ### Osteoporosis
+# 
+# PROCESS(thesis_NHRVS,
+#   x="Osteoporosis", mods = "Total_HC",
+#   y="Ex_rec",
+#   covs = covs)
+# 
+# ### HRT Attack
+# 
+# PROCESS(thesis_NHRVS,
+#   x="Hrt_atk", mods = "Total_HC",
+#   y="Ex_rec",
+#   covs = covs)
+# 
+# ### High cholesterol
+# 
+# PROCESS(thesis_NHRVS,
+#   x="High_chol", mods = "Total_HC",
+#   y="Ex_rec",
+#   covs = covs)
+# 
+# PROCESS(thesis_NHRVS,
+#   x="GAD_Current" , # Health condition
+#   mods = "Total_HC", # moderator
+#   y="Ex_rec", # outcome variable
+#   covs = covs)
+# 
+# PROCESS(thesis_NHRVS,
+#   x="MDD_Current", mods = "Total_HC",
+#   y="Ex_rec",
+#   covs = covs)
+# 
+# PROCESS(thesis_NHRVS,
+#   x="Stroke", mods = "Total_HC",
+#   y="Ex_rec",
+#   covs = covs)
+```
 
-PROCESS(thesis_NHRVS,
-  x="Diabetes", y="Ex_rec", mods = "MDD_Current", covs = c("Age", "College", "White_Race",
-  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
-)
 
-PROCESS(thesis_NHRVS,
-  x="Diabetes", y="Ex_rec", mods = "DUD_Current", covs = c("Age", "College", "White_Race",
-  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
-)
+ROC. vs AUC
+```{r}
+Reg_df <- thesis_NHRVS |>
+  dplyr::select(
+    Ex_rec,
+             #Covariates
+             Age , College , White_Race  ,
+             Income_60k_plus , Combat_Veteran , 
+             TOTAL_TRAUMAS , BMI ,
+             #Physical Health Conditions
+             Athsma , Chron_pain , Diabetes, Hrt_atk , 
+             Hrt_dis , High_chol , High_bld_press , Osteoporosis , Stroke ,
+             #Mental Health conditions
+             AUD_Current , DUD_Current , MDD_Current , PTSD_Current , GAD_Current,
+             # Data
+             weight)
+Reg_df <-na.omit(Reg_df)
 
-#### Asthma
-PROCESS(thesis_NHRVS,
-  x="Athsma", y="Ex_rec", mods = "GAD_Current", covs = c("Age", "College", "White_Race",
-  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
-)
+fit1<-glm(Ex_rec~
+             #Covariates
+             Age + College + White_Race  +
+             Income_60k_plus + Combat_Veteran + 
+             TOTAL_TRAUMAS + BMI +
+             #Physical Health Conditions
+             Athsma + Chron_pain + Diabetes+ Hrt_atk + 
+             Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke +
+             #Mental Health conditions
+             AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current,
+             # Data
+             data =Reg_df,
+             # Specify type of regression
+             family="binomial",weights = weight)
 
-PROCESS(thesis_NHRVS,
-  x="Athsma", y="Ex_rec", mods = "MDD_Current", covs = c("Age", "College", "White_Race",
-  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
-)
+length(probabilities)
+# just number of conditions
+probabilities <-  predict(fit1, NewData=Reg_df ,type = "response")
+predicted.classes <- ifelse(probabilities > 0.5, 1,0)
 
-PROCESS(thesis_NHRVS,
-  x="Athsma", y="Ex_rec", mods = "DUD_Current", covs = c("Age", "College", "White_Race",
-  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI")
-)
+#confusion matrix
+table(HC_df$Ex_rec, predicted.classes)
+#roc
+roc1 <- roc(response = Reg_df$Ex_rec,
+               predictor = probabilities)
+
+ggroc(roc1, legacy.axes = TRUE) +
+  labs(x = 'False-positive rate', y = 'True-positive rate',
+       title = 'ROC curve\nEx_rec ~ # Health Conditions + Covariates') +
+  annotate('text', x = .5, y = .5, label = paste0('AUC: ', round(auc(roc1), digits = 2)))
+```
+
+
+```{r}
+#just number of conditions
+
+HC_df <- thesis_NHRVS |>
+  dplyr::select(
+    #outcome
+    Ex_rec,
+    #covaraiates
+    Age,College,White_Race,Income_60k_plus,Combat_Veteran,TOTAL_TRAUMAS,BMI,  
+    #HC
+    Total_HC,
+    #weights
+    weight
+  ) 
+
+HC_df <- na.omit(HC_df)
+library(caret)
+
+
+fit2 <- glm(Ex_rec~
+             #Covariates
+             Age + College + White_Race  +
+             Income_60k_plus + Combat_Veteran + 
+             TOTAL_TRAUMAS + BMI + 
+             #number of health conditions
+             Total_HC,
+             # Data
+             data =HC_df,
+             # Specify weights
+             family = "binomial", weights = weight)
+
+
+#install.packages("pROC")
+library(pROC)
+
+
+# just number of conditions
+probabilities <-  predict(fit2, NewData=HC_df ,type = "response")
+predicted.classes <- ifelse(probabilities > 0.5, 1,0)
+
+#confusion matrix
+table(HC_df$Ex_rec, predicted.classes)
+#roc
+roc2 <- roc(response = HC_df$Ex_rec,
+               predictor = probabilities)
+
+ggroc(roc2, legacy.axes = TRUE, col = "red") +
+  labs(x = 'False-positive rate', y = 'True-positive rate',
+       title = 'ROC curve\nEx_rec ~ # Health Conditions + Covariates') +
+  annotate('text', x = .5, y = .5, label = paste0('AUC: ', round(auc(roc2), digits = 2)))
+
+
+both_df <- thesis_NHRVS |>
+  dplyr::select(
+    Ex_rec,
+             #Covariates
+             Age , College , White_Race  ,
+             Income_60k_plus , Combat_Veteran , 
+             TOTAL_TRAUMAS , BMI ,
+             #Physical Health Conditions
+             Athsma , Chron_pain , Diabetes, Hrt_atk , 
+             Hrt_dis , High_chol , High_bld_press , Osteoporosis , Stroke ,
+             #Mental Health conditions
+             AUD_Current , DUD_Current , MDD_Current , PTSD_Current , GAD_Current,
+             Total_HC,
+             # Data
+             weight)
+both_df <-na.omit(both_df)
+
+fit3<-glm(Ex_rec~
+             #Covariates
+             Age + College + White_Race  +
+             Income_60k_plus + Combat_Veteran + 
+             TOTAL_TRAUMAS + BMI +
+             #Physical Health Conditions
+             Athsma + Chron_pain + Diabetes+ Hrt_atk + 
+             Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke +
+             #Mental Health conditions
+             AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current +
+             Total_HC,
+             # Data
+             data =both_df,
+             # Specify type of regression
+             family="binomial",weights = weight)
+
+
+# just number of conditions
+probabilities3 <-  predict(fit3, NewData=Both_df ,type = "response")
+predicted.classes3 <- ifelse(probabilities3 > 0.5, 1,0)
+
+#confusion matrix
+table(HC_df$Ex_rec, predicted.classes3)
+#roc
+roc3 <- roc(response = both_df$Ex_rec,
+               predictor = probabilities3)
+
+ggroc(roc3, legacy.axes = TRUE) +
+  labs(x = 'False-positive rate', y = 'True-positive rate',
+       title = 'ROC curve\nEx_rec ~ # Health Conditions + Conditions +  Covariates') +
+  annotate('text', x = .5, y = .5, label = paste0('AUC: ', round(auc(roc3), digits = 2)))
+```
+
+predictive probabilities 
+```{r}
+
+HC_df <- thesis_NHRVS |>
+  dplyr::select(
+    #outcome
+    Ex_rec,
+    #covaraiates
+    Age,College,White_Race,Income_60k_plus,Combat_Veteran,TOTAL_TRAUMAS,BMI,  
+    #HC
+    Total_HC,
+    #weights
+    weight)
+  # ) |>
+  # mutate(
+  #   Ex_rec = as.factor(ifelse(Ex_rec == "Insufficient", 0,1))
+  # )
+HC_df <- na.omit(HC_df)
+library(caret)
+
+fit2 <- glm(relevel(Ex_rec,ref = "Sufficient")~
+             #Covariates
+             Age + College + White_Race  +
+             Income_60k_plus + Combat_Veteran + 
+             TOTAL_TRAUMAS + BMI + 
+             #number of health conditions
+             Total_HC,
+             # Data
+             data =HC_df,
+             # Specify weights
+             family = "binomial") #weights = weight)
+
+OR <- round(exp(cbind(coef(fit2), confint(fit2))),2)
+
+OR_fig <-paste0(OR[8,1], " [",OR[8,2], ",",OR[8,2], "]")
+
+HC_df2$prob <- predict(fit2, NewData=HC_df ,type = "response")
+HC_df2<- cbind(HC_df, predict(fit2, newdata = HC_df, type = "response",
+    se = TRUE))
+
+HC_df2 <- HC_df2 |>
+  mutate(
+    LL = fit - (1.96 * se.fit),
+    UL = fit + (1.96 * se.fit)
+  )
+
+# just number of conditions
+ggplot(HC_df2, aes(x = Total_HC, y = fit)) + 
+  #geom_ribbon(aes(ymin = LL,
+    # ymax = UL), alpha = 0.2) + 
+  geom_smooth(size = 1) +
+  labs(x = '# of co-occuring health conditions', y = 'Predictive probability for insuficient activity',
+       title = 'Predictive Probabilities\nExercise guidelines ~ # Health Conditions +  Covariates') +
+  #annotate('text', x = 10, y = .6, label = paste0('OR: ', OR_fig)) +
+  theme_classic()
+
+
+
 
 ```
 
 
 
+```{r}
+# Read in simulated data
+sim_dat <- read.csv('http://static.lib.virginia.edu/statlab/materials/data/roc_sim_dat.csv', header = T)
+
+# See a few rows
+sim_dat[c(1, 25, 75, 100), ]
+
+sim_dat
+
+# Use pROC calculate TPR/FPR across a range of classification thresholds
+sim_roc <- roc(response = sim_dat$actual_outcome,
+               predictor = sim_dat$predicted_prob_of_Yes,
+               levels = c('No', 'Yes'))
+# response: vector of actual outcomes
+# predictor: vector of probabilities, one for each observation
+# levels: response values to be taken as "No"/0/"Failure"/etc. and "Yes"/1/"Success"/etc., respectively
+
+# Plot ROC curve
+# - pROC::ggroc() prints the ROC curve using ggplot2; you can print the curve using base R graphics with pROC::plot.roc()
+# - legacy.axes = TRUE ensures that the x-axis is displayed as FPR from 0 to 1 as opposed to
+#     specificity (1-FPR) from 1 to 0
+ggroc(sim_roc, legacy.axes = TRUE) +
+  labs(x = 'False-positive rate', y = 'True-positive rate', title = 'Simulated ROC curve')
+
+
+
+
+
+
+
+
+roc(train.data$Ex_rec,
+             predicted.classes)
+
+\
+
+
+
+
+summary(test.data$Ex_rec)
+```
 
 
 
