@@ -501,61 +501,62 @@ Conditions_X_use
 
 
 ```{r,include=FALSE}
+# 
+# #1. run model 1
+#   df <- glm(Ex_rec  ~  Age + College + White_Race  + Income_60k_plus + Combat_Veteran + 
+#                            TOTAL_TRAUMAS + BMI, data = thesis_NHRVS,family="binomial")
+#   
+# #2. summary of the model
+#   df_summary <- summary(df)
+#   df_sum <- tidy(df) 
+# #4 Coefficients 
+#   coefs_df <- abs(coef(df))
+# #5. Odds ratio
+#   OR_df <- exp(coef(df))
+# #6. OR 95% CI
+#   CI_df <- data.frame(round(exp(confint(df)),2))
+# #7. P value function
+#   p_val1<- cbind(df_sum$term ,df_sum$p.value)
+#   adj.p <- FDR(pvalues = p_val1)
+#   ADJ.p.values <- data.frame(rbind(adj.p$exclude, adj.p$select))
+#   ADJ.p.values
+# 
+# #### Part 2. Make the table and export   
+#   
+# #1. Create a data frame
+# tab_df <-  data.frame(cbind(
+#   variable = df_sum$term[2:length(df_sum$term)],
+#   Beta = coefs_df[2:length(df_sum$term)],
+#   Wald = round(wald,2),
+#   OR = OR_df[2:length(OR_df)],
+#   CI = paste0("[",CI_df[2:length(OR_df),1], ",", CI_df[2:length(OR_df),2], "]"),
+#   p = p_val1[2:length(length(p_val1[,2])),2]
+# ))
+# #2. left join adjusted p values
+# #tab_df  <- left_join(tab_df, ADJ.p.values,by = join_by(p == p.value))
+# 
+# #3. 
+# tab_tab <- data.frame(cbind(
+#   variable = tab_df$variable,
+#   Beta = tab_df$Beta,
+#   Wald = tab_df$Wald,
+#   OR = tab_df$OR,
+#   CI = tab_df$CI,
+#   p = tab_df$p
+# ))
+# #round the numbers
+# tab_tab$Beta = round(as.numeric(tab_tab$Beta),2)
+# tab_tab$Wald = round(as.numeric(tab_tab$Wald),2)
+# tab_tab$OR = round(as.numeric(tab_tab$OR),2)
+# tab_tab$p = tab_tab$p = round(as.numeric(tab_tab$p),4)
+# 
+# tab_tab[1,1] = string
+# 
+# output <- tab_tab[1,]
+#   
+#   return(output)
+# }
 
-#1. run model 1
-  df <- glm(Ex_rec  ~  Age + College + White_Race  + Income_60k_plus + Combat_Veteran + 
-                           TOTAL_TRAUMAS + BMI, data = thesis_NHRVS,family="binomial")
-  
-#2. summary of the model
-  df_summary <- summary(df)
-  df_sum <- tidy(df) 
-#4 Coefficients 
-  coefs_df <- abs(coef(df))
-#5. Odds ratio
-  OR_df <- exp(coef(df))
-#6. OR 95% CI
-  CI_df <- data.frame(round(exp(confint(df)),2))
-#7. P value function
-  p_val1<- cbind(df_sum$term ,df_sum$p.value)
-  adj.p <- FDR(pvalues = p_val1)
-  ADJ.p.values <- data.frame(rbind(adj.p$exclude, adj.p$select))
-  ADJ.p.values
-
-#### Part 2. Make the table and export   
-  
-#1. Create a data frame
-tab_df <-  data.frame(cbind(
-  variable = df_sum$term[2:length(df_sum$term)],
-  Beta = coefs_df[2:length(df_sum$term)],
-  Wald = round(wald,2),
-  OR = OR_df[2:length(OR_df)],
-  CI = paste0("[",CI_df[2:length(OR_df),1], ",", CI_df[2:length(OR_df),2], "]"),
-  p = p_val1[2:length(length(p_val1[,2])),2]
-))
-#2. left join adjusted p values
-#tab_df  <- left_join(tab_df, ADJ.p.values,by = join_by(p == p.value))
-
-#3. 
-tab_tab <- data.frame(cbind(
-  variable = tab_df$variable,
-  Beta = tab_df$Beta,
-  Wald = tab_df$Wald,
-  OR = tab_df$OR,
-  CI = tab_df$CI,
-  p = tab_df$p
-))
-#round the numbers
-tab_tab$Beta = round(as.numeric(tab_tab$Beta),2)
-tab_tab$Wald = round(as.numeric(tab_tab$Wald),2)
-tab_tab$OR = round(as.numeric(tab_tab$OR),2)
-tab_tab$p = tab_tab$p = round(as.numeric(tab_tab$p),4)
-
-tab_tab[1,1] = string
-
-output <- tab_tab[1,]
-  
-  return(output)
-}
 
 ```
 
@@ -729,8 +730,8 @@ PHC_Reg_sum <- tidy(PHC_Reg)
     ADJ.p.values
     
 #6. R^2 for model
-  R2_PHC_Reg <- performance::r2(PHC_Reg)
-
+  R2_PHC_Reg <- performance::r2(PHC_Reg) 
+  block_2_R2 = R2_PHC_Reg[[1]] - R2_Cov_Reg[[1]]
 #wald
   library(aod) # Wald test
   PHC_wald<- wald.test(b = coef(PHC_Reg),Sigma = vcov(PHC_Reg),Terms= 2:length(coefs_PHC_Reg))
@@ -773,8 +774,8 @@ PHC_Reg_tab$p = ifelse(as.numeric(PHC_Reg_df$p) < 0.001, "< 0.001",
 #2. create the row for the R2
   paste("Block 2 R^2 =", round((R2_PHC_Reg[[1]]*100),3),"%")
   variable = c(
-    paste0("Block 2 X^2=", round(cov_wald$result$chi2[1],2),",p<0.001"),
-    paste0("Block 2 R^2=", round((R2_PHC_Reg[[1]]),3))  
+    paste0("Block 2 X^2=", round(PHC_wald$result$chi2[1],2),",p<0.001"),
+    paste0("Block 2 R^2 change=", round((block_2_R2[[1]]),3))  
   )
 
   R2TAB<-data.frame(cbind(
@@ -835,6 +836,7 @@ MHC_Reg_sum <- tidy(MHC_Reg)
     
 #6. R^2 for model
   R2_MHC_Reg <- performance::r2(MHC_Reg)
+  Block3_R2 = R2_MHC_Reg[[1]] - block_2_R2[[1]]
 
 #wald
   library(aod) # Wald test
@@ -844,6 +846,7 @@ MHC_Reg_sum <- tidy(MHC_Reg)
   for(i in 19:length(coefs_MHC_Reg)){
       wald <- append(wald, wald.test(b = coef(MHC_Reg),Sigma = vcov(MHC_Reg),Terms=i)$result$chi2[1])
   }
+  MHC_wald
 #### Part 2. Make the table and export 
 
 #1. Create data frame
@@ -877,8 +880,8 @@ MHC_Reg_tab$p = ifelse(as.numeric(MHC_Reg_df$p) < 0.001, "< 0.001",
 
 #2. create the row for the R2
   variable = c(
-    paste0("Block 3 X^2=", round(cov_wald$result$chi2[1],2),",p<0.001"),
-    paste0("Block 3 R^2=", round((R2_MHC_Reg[[1]]),3))  
+    paste0("Block 3 X^2=", round(MHC_wald$result$chi2[1],2),",p<0.001"),
+    paste0("Block 3 R^2=", round((Block3_R2[[1]]),3))  
   )
 
   R2TAB<-data.frame(cbind(
@@ -899,10 +902,10 @@ MHC_Reg_tab$p = ifelse(as.numeric(MHC_Reg_df$p) < 0.001, "< 0.001",
 
 
 ```{r}
-install.packages("report")
-library(report)
-
-X <- report(MHC_Reg)
+# install.packages("report")
+# library(report)
+# 
+# X <- report(MHC_Reg)
 
 ```
 
@@ -959,6 +962,7 @@ fit1 <- glm(MET_min~
 
 relimp <- calc.relimp(fit1, type = "lmg", importance = TRUE)
 calc.relimp
+?calc.relimp()
 
 # View the structure of the relimp object
 str(relimp)
@@ -1141,7 +1145,7 @@ PROCESS(thesis_NHRVS,
 #   covs = covs)
 ```
 
-
+https://www.appsilon.com/post/r-logistic-regression
 ROC. vs AUC
 ```{r}
 Reg_df <- thesis_NHRVS |>
