@@ -915,11 +915,6 @@ MHC_Reg_tab$p = ifelse(as.numeric(MHC_Reg_df$p) < 0.001, "< 0.001",
 ## Importance of variables
 https://journals-sagepub-com.ezproxy.uky.edu/doi/abs/10.1177/1094428109341993?journalCode=orma
 
-assign function scripts
-```{r}
-
-```
-
 Select data needed for analysis
 ```{r}
 # rawdata<-read.csv("/Users/robertpietrzak/Downloads/DV.csv")
@@ -934,7 +929,7 @@ mydata <- thesis_NHRVS |>
     #IV
       Ex_rec,
     #Covariates
-       Age,College, White_Race, 
+       Age,College, White_Race,
        Income_60k_plus, Combat_Veteran,
        TOTAL_TRAUMAS, BMI,
     #Physical Health Conditions
@@ -948,12 +943,12 @@ mydata <- thesis_NHRVS |>
     # Convert all of the varaibles to numeric
     mutate(
       Ex_rec = as.numeric(Ex_rec),
-      Age = as.numeric(Age), 
-      College = as.numeric(College), 
-      White_Race = as.numeric(White_Race), 
-      Income_60k_plus = as.numeric(Income_60k_plus), 
+      Age = as.numeric(Age),
+      College = as.numeric(College),
+      White_Race = as.numeric(White_Race),
+      Income_60k_plus = as.numeric(Income_60k_plus),
       Combat_Veteran = as.numeric(Combat_Veteran),
-      TOTAL_TRAUMAS = as.numeric(TOTAL_TRAUMAS), 
+      TOTAL_TRAUMAS = as.numeric(TOTAL_TRAUMAS),
       BMI = as.numeric(BMI),
       Athsma = as.numeric(Athsma),
       Chron_pain = as.numeric(Chron_pain), 
@@ -970,17 +965,14 @@ mydata <- thesis_NHRVS |>
       MDD_Current = as.numeric(MDD_Current), 
       PTSD_Current = as.numeric(PTSD_Current)
     )
-attr(mydata$PTSD_Current, "ATT") <- NULL
-str(mydata)
-
+# attr(mydata$PTSD_Current, "ATT") <- NULL
+# str(mydata)
+# 
 mydata <- na.omit(mydata)
-labels<-names(mydata)[2:length(mydata)]
-
-mydata
-labels
+# labels<-names(mydata)[2:length(mydata)]
 ```
 
-Manually run logistic regression
+Functions for bootstrapping
 ```{r}
 logRegress<-function(mydata){
   
@@ -1016,12 +1008,10 @@ beta<-b*((sqrt(Rsq))/stdlYhat)#Computing standardized logistic regression coeffi
 epsilon<-Lambda^2%*%beta^2
 R.sq<<-sum(epsilon)
 PropWeights<-(epsilon/R.sq)
-result <- data.frame(Variables, Raw.RelWeight=epsilon, Rescaled.RelWeight=PropWeights) 
+result <- data.frame(Variables, Raw.RelWeight=epsilon, Rescaled.RelWeight=PropWeights)
+return(result)
 }
 
-```
-
-```{r}
 logBootstrap<-function(mydata, indices){
 mydata<-mydata[indices,]
 logWeights<-logRegress(mydata)
@@ -1062,6 +1052,7 @@ INDEX<-1:num
 test<-lapply(INDEX,FUN=myRbootci)
 test2<-t(sapply(test,'[[',i=4))
 CIresult<<-data.frame(Labels,CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5])
+}
 
   #logRegress(thedata) # perfomed above manually
 ```
@@ -1069,11 +1060,38 @@ CIresult<<-data.frame(Labels,CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5])
 
 ```{r, results='hide'}
 #1.1 Run function
-logRegress(mydata)
+result <- logRegress(mydata)
 
 #1.2 save results
 RW.Results<-result
 RSQ.o<-R.sq
+
+
+
+RW.Results <- result |>
+  arrange(-Rescaled.RelWeight) |>
+  mutate(Rescaled.RelWeight = round((Rescaled.RelWeight*100),2)
+  )
+RW.Results
+
+ggplot2::ggplot(RW.Results, aes(x=reorder(Variables,Rescaled.RelWeight),y=Rescaled.RelWeight),
+                ) +
+  # geom_hline(yintercept = 1,linetype="dashed",alpha = .25) +
+  # geom_hline(yintercept = .5,linetype="dashed",alpha = .25) +
+  geom_bar(stat = "identity", color = "Black") +
+  ggtitle("Relative weight (importance) of predictors on Physical Activity") +
+  theme_classic() +
+  xlab('Variable')+
+  ylab('% of importance in physical activity')+
+  ylim(0,40)+
+  geom_text(aes(label = Rescaled.RelWeight), vjust =.5, hjust = -.5, color = "black")+
+  coord_flip() 
+
+```
+
+
+```{r, results='hide'}
+
 
 #2. Bootstraps
 #Bootstrap Confidence interval around the individual relative weights
@@ -1090,57 +1108,65 @@ RSQ.o<-R.sq
 # logWeights<-logRegress(mydata)
 # return(logWeights$Raw.RelWeight)
 # }
-
 #2.3 Set seed
 set.seed(123456)
 
 #2.4 run boot function
 logBoot<-boot(mydata, # Data
               logBootstrap, # Statistic
-              10000) # R / number of times
+              5000) # R / number of times
+?boot.ci()
+
 #2.5 confidence interval for bootstraps
 logci<-boot.ci(logBoot,conf=0.95, type="bca")
+
+logci
 #2.6 runboot function
-runBoot(length(mydata[,2:numVar]))
+numVar<-NCOL(mydata)
+```
+
+
+```{r, results='hide'}
+library(broom)
+tidy(logBoot,conf.int=TRUE,conf.method="perc")
+# runBoot(length(mydata[,2:numVar]))
+
+# runBoot<-function(num){
+
+INDEX<-1:length(mydata[,2:numVar])
+INDEX
+test<-lapply(INDEX, FUN=mybootci)
+test
+test2<-t(sapply(test,'[[',i=4)) #extracts confidence interval
+CIresult<<-data.frame(Variables, CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5])
+# }
 CI.Results<-CIresult
+```
 
 
-#Bootstrapped Confidence interval tests of Significance
-
+```{r, results='hide'}
+#3 #Bootstrapped Confidence interval tests of Significance
 #Please be patient -- This can take a few minutes to run
-
-randVar<-rnorm(length(thedata[,1]),0,1)
-
-randData<-cbind(thedata,randVar)
-
+#3.1 
+randVar<-rnorm(length(mydata[,1]),0,1)
+randData<-cbind(mydata,randVar)
 logRBoot<-boot(randData,logBootrand, 10000)
-
 logRci<-boot.ci(logRBoot,conf=0.95, type="bca")
-
 runRBoot(length(randData[,2:(numVar-1)]))
-
 CI.Significance<-CIresult
 
-
-
 #Rsq.O - logistic analog to Rsq
-
 RSQ.o
 
-
-
 #The Raw and Rescaled Weights
-
 RW.Results
 
 #BCa Confidence Intervals around the raw weights
-
 CI.Results
 
 #BCa Confidence Interval Tests of significance
 
 #If Zero is not included, Weight is Significant
-
 CI.Significance
 ```
 
@@ -1177,7 +1203,7 @@ logci<-boot.ci(logBoot,conf=0.95, type="bca")
 runBoot(length(mydata[,2:numVar]))
 CI.Results<-CIresult
 
-logBootstrap<-function(mydata, indices)
+logBootstrap<-function(mydata, indices){
   
 mydata<-mydata[indices,]
 logWeights<-logRegress(mydata)
@@ -1193,7 +1219,7 @@ boot.ci(logBoot,conf=0.95, type="bca", index=x)
 
 logBoot<-boot(
                 mydata, # data
-                logBootstrap #statistic
+                logBootstrap, #statistic
                 10000 # R / number of times
                 )
 
