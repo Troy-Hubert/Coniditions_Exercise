@@ -1074,8 +1074,9 @@ RW.Results <- result |>
   )
 RW.Results
 
-ggplot2::ggplot(RW.Results, aes(x=reorder(Variables,Rescaled.RelWeight),y=Rescaled.RelWeight),
-                ) +
+write_csv(RW.Results,"~/Downloads/RW.Results")
+
+ggplot2::ggplot(RW.Results, aes(x=reorder(Variables,Rescaled.RelWeight),y=Rescaled.RelWeight)) +
   # geom_hline(yintercept = 1,linetype="dashed",alpha = .25) +
   # geom_hline(yintercept = .5,linetype="dashed",alpha = .25) +
   geom_bar(stat = "identity", color = "Black") +
@@ -1115,7 +1116,6 @@ set.seed(123456)
 logBoot<-boot(mydata, # Data
               logBootstrap, # Statistic
               5000) # R / number of times
-?boot.ci()
 
 #2.5 confidence interval for bootstraps
 logci<-boot.ci(logBoot,conf=0.95, type="bca")
@@ -1123,24 +1123,22 @@ logci<-boot.ci(logBoot,conf=0.95, type="bca")
 logci
 #2.6 runboot function
 numVar<-NCOL(mydata)
-```
 
-
-```{r, results='hide'}
 library(broom)
-tidy(logBoot,conf.int=TRUE,conf.method="perc")
+CI.Results<- tidy(logBoot,conf.int=TRUE,conf.method="perc") 
+write_csv(CI.Results, "~/Downloads/CI.Results")
 # runBoot(length(mydata[,2:numVar]))
 
-# runBoot<-function(num){
-
-INDEX<-1:length(mydata[,2:numVar])
-INDEX
-test<-lapply(INDEX, FUN=mybootci)
-test
-test2<-t(sapply(test,'[[',i=4)) #extracts confidence interval
-CIresult<<-data.frame(Variables, CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5])
-# }
-CI.Results<-CIresult
+# # runBoot<-function(num){
+# 
+# INDEX<-1:length(mydata[,2:numVar])
+# INDEX
+# test<-lapply(INDEX, FUN=mybootci)
+# test
+# test2<-t(sapply(test,'[[',i=4)) #extracts confidence interval
+# CIresult<<-data.frame(Variables, CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5])
+# # }
+# CI.Results<-CIresult
 ```
 
 
@@ -1148,12 +1146,19 @@ CI.Results<-CIresult
 #3 #Bootstrapped Confidence interval tests of Significance
 #Please be patient -- This can take a few minutes to run
 #3.1 
+
 randVar<-rnorm(length(mydata[,1]),0,1)
 randData<-cbind(mydata,randVar)
-logRBoot<-boot(randData,logBootrand, 10000)
+randData <- na.omit(randData)
+logRBoot<-boot(mydata,logBootrand, 5000)
 logRci<-boot.ci(logRBoot,conf=0.95, type="bca")
+
+rand_CI<- tidy(logBoot,conf.int=TRUE,conf.method="perc")
+write_csv(rand_CI,"~/Downloads/rand_CI")
 runRBoot(length(randData[,2:(numVar-1)]))
 CI.Significance<-CIresult
+
+
 
 #Rsq.O - logistic analog to Rsq
 RSQ.o
