@@ -901,6 +901,15 @@ MHC_Reg_tab$p = ifelse(as.numeric(MHC_Reg_df$p) < 0.001, "< 0.001",
   
   MHC_Reg_df
   
+Full_OR_tab$variable = 
+  c("Block 1 X^2=83.47,p<0.001","Block 1 R^2=0.047","Age","College",
+    "White_Race","Income_60k_plus","Combat_Veteran","TOTAL_TRAUMAS","BMI",
+    "Block 2 X^2=83.47,p<0.001","Block 2 R^2 change=0.01", "Athsma",  
+    "Chron_pain", "Diabetes", "Hrt_atk", "Hrt_dis", "High_chol", 
+    "High_bld_press", "Osteoporosis", "Stroke", "Block 3 X^2=83.47,p<0.001",
+    "Block 3 R^2=0.05", "AUD_Current", "DUD_Current", "MDD_Current", 
+    "PTSD_Current", "GAD_Current"
+    )
 ```
 
 
@@ -965,11 +974,8 @@ mydata <- thesis_NHRVS |>
       MDD_Current = as.numeric(MDD_Current), 
       PTSD_Current = as.numeric(PTSD_Current)
     )
-# attr(mydata$PTSD_Current, "ATT") <- NULL
-# str(mydata)
-# 
+
 mydata <- na.omit(mydata)
-# labels<-names(mydata)[2:length(mydata)]
 ```
 
 Functions for bootstrapping
@@ -1070,29 +1076,194 @@ RSQ.o<-R.sq
 
 RW.Results <- result |>
   arrange(-Rescaled.RelWeight) |>
-  mutate(Rescaled.RelWeight = round((Rescaled.RelWeight*100),2)
+  mutate(Rescaled.RelWeight = round((Rescaled.RelWeight*100),2),
+         Raw.percent = round(Raw.RelWeight*100,4)
   )
 RW.Results
 
 write_csv(RW.Results,"~/Downloads/RW.Results")
+```
 
-ggplot2::ggplot(RW.Results, aes(x=reorder(Variables,Rescaled.RelWeight),y=Rescaled.RelWeight)) +
-  # geom_hline(yintercept = 1,linetype="dashed",alpha = .25) +
-  # geom_hline(yintercept = .5,linetype="dashed",alpha = .25) +
-  geom_bar(stat = "identity", color = "Black") +
-  ggtitle("Relative weight (importance) of predictors on Physical Activity") +
-  theme_classic() +
-  xlab('Variable')+
-  ylab('% of importance in physical activity')+
-  ylim(0,40)+
-  geom_text(aes(label = Rescaled.RelWeight), vjust =.5, hjust = -.5, color = "black")+
-  coord_flip() 
+Block 1
+```{r}
+set.seed(123456)
+
+mydata_B1 <- thesis_NHRVS |>
+  #Select all of the variables needed for the analysis
+  dplyr::select(
+    #IV
+      Ex_rec,
+    #Covariates
+       Age,College, White_Race,
+       Income_60k_plus, Combat_Veteran,
+       TOTAL_TRAUMAS, BMI,
+  ) |>
+    # Convert all of the varaibles to numeric
+    mutate(
+      Ex_rec = as.numeric(Ex_rec),
+      Age = as.numeric(Age),
+      College = as.numeric(College),
+      White_Race = as.numeric(White_Race),
+      Income_60k_plus = as.numeric(Income_60k_plus),
+      Combat_Veteran = as.numeric(Combat_Veteran),
+      TOTAL_TRAUMAS = as.numeric(TOTAL_TRAUMAS),
+      BMI = as.numeric(BMI),
+    )
+
+mydata <- na.omit(mydata)
+
+#2.4 run boot function
+logBoot_B1<-boot(mydata_B1, # Data
+              logBootstrap, # Statistic
+              5000) # R / number of times
+
+#2.5 confidence interval for bootstraps
+logci_B1<-boot.ci(logBoot_B1,conf=0.95, type="bca")
+
+boot.ci(logBoot_B1, type="bca",index = 1)
+
+#2.6 runboot function
+numVar<-NCOL(mydata_B1)
+
+CI.Result_B1s<- tidy(logBoot_B1,conf.int=TRUE,conf.method="perc") 
+CI.Results_B1
+write_csv(CI.Results_B1, "~/Downloads/CI.Results_B1")
+
+boot.ci(logBoot_B1, type="bca",index = 1)
+
+#Rsq.O - logistic analog to Rsq
+RSQ.o_B1
+
+#The Raw and Rescaled Weights
+RW.Results_B1
+
+#BCa Confidence Intervals around the raw weights
+CI.Results_B1
+colnames(CI.Results_B1) <- paste0(colnames(CI.Results_B1),"_CI")
+```
+
+Block 2
+```{r}
+set.seed(123456)
+
+mydata_B2 <- thesis_NHRVS |>
+  #Select all of the variables needed for the analysis
+  dplyr::select(
+    #IV
+      Ex_rec,
+    #Covariates
+       Age,College, White_Race,
+       Income_60k_plus, Combat_Veteran,
+       TOTAL_TRAUMAS, BMI,
+    #Physical Health Conditions
+       Athsma, Chron_pain, Diabetes,
+       Hrt_atk, Hrt_dis, High_chol,
+       High_bld_press, Osteoporosis, Stroke, 
+  ) |>
+    # Convert all of the varaibles to numeric
+    mutate(
+      Ex_rec = as.numeric(Ex_rec),
+      Age = as.numeric(Age),
+      College = as.numeric(College),
+      White_Race = as.numeric(White_Race),
+      Income_60k_plus = as.numeric(Income_60k_plus),
+      Combat_Veteran = as.numeric(Combat_Veteran),
+      TOTAL_TRAUMAS = as.numeric(TOTAL_TRAUMAS),
+      BMI = as.numeric(BMI),
+      Athsma = as.numeric(Athsma),
+      Chron_pain = as.numeric(Chron_pain), 
+      Diabetes = as.numeric(Diabetes),
+      Hrt_atk = as.numeric(Hrt_atk), 
+      Hrt_dis = as.numeric(Hrt_dis), 
+      High_chol = as.numeric(High_chol),
+      High_bld_press = as.numeric(High_bld_press), 
+      Osteoporosis = as.numeric(Osteoporosis), 
+      Stroke = as.numeric(Stroke), 
+    )
+
+mydata <- na.omit(mydata)
+
+mydata <- na.omit(mydata)
+
+#2.4 run boot function
+logBoot_B2<-boot(mydata_B2, # Data
+              logBootstrap, # Statistic
+              5000) # R / number of times
+
+#2.5 confidence interval for bootstraps
+logci_B2<-boot.ci(logBoot_B2,conf=0.95, type="bca")
+
+boot.ci(logBoot_B2, type="bca",index = 1)
+
+#2.6 runboot function
+numVar<-NCOL(mydata_B2)
+
+CI.Result_B2s<- tidy(logBoot_B2,conf.int=TRUE,conf.method="perc") 
+CI.Results_B2
+write_csv(CI.Results_B2, "~/Downloads/CI.Results_B2")
+
+boot.ci(logBoot_B2, type="bca",index = 1)
+
+#Rsq.O - logistic analog to Rsq
+RSQ.o_B2
+
+#The Raw and Rescaled Weights
+RW.Results_B2
+
+#BCa Confidence Intervals around the raw weights
+CI.Results_B2
+colnames(CI.Results_B2) <- paste0(colnames(CI.Results_B2),"_CI")
 
 ```
 
 
 ```{r, results='hide'}
+library(broom)
 
+mydata_B3 <- thesis_NHRVS |>
+  #Select all of the variables needed for the analysis
+  dplyr::select(
+    #IV
+      Ex_rec,
+    #Covariates
+       Age,College, White_Race,
+       Income_60k_plus, Combat_Veteran,
+       TOTAL_TRAUMAS, BMI,
+    #Physical Health Conditions
+       Athsma, Chron_pain, Diabetes,
+       Hrt_atk, Hrt_dis, High_chol,
+       High_bld_press, Osteoporosis, Stroke, 
+    #Mental Health conditions
+       AUD_Current, DUD_Current, MDD_Current, 
+       PTSD_Current, GAD_Current    
+  ) |>
+    # Convert all of the varaibles to numeric
+    mutate(
+      Ex_rec = as.numeric(Ex_rec),
+      Age = as.numeric(Age),
+      College = as.numeric(College),
+      White_Race = as.numeric(White_Race),
+      Income_60k_plus = as.numeric(Income_60k_plus),
+      Combat_Veteran = as.numeric(Combat_Veteran),
+      TOTAL_TRAUMAS = as.numeric(TOTAL_TRAUMAS),
+      BMI = as.numeric(BMI),
+      Athsma = as.numeric(Athsma),
+      Chron_pain = as.numeric(Chron_pain), 
+      Diabetes = as.numeric(Diabetes),
+      Hrt_atk = as.numeric(Hrt_atk), 
+      Hrt_dis = as.numeric(Hrt_dis), 
+      High_chol = as.numeric(High_chol),
+      High_bld_press = as.numeric(High_bld_press), 
+      Osteoporosis = as.numeric(Osteoporosis), 
+      Stroke = as.numeric(Stroke), 
+      AUD_Current = as.numeric(AUD_Current), 
+      DUD_Current = as.numeric(DUD_Current), 
+      MDD_Current = as.numeric(MDD_Current),
+      PTSD_Current = as.numeric(PTSD_Current), 
+      GAD_Current = as.numeric(GAD_Current)  
+    )
+
+mydata_B3 <- na.omit(mydata_B3)
 
 #2. Bootstraps
 #Bootstrap Confidence interval around the individual relative weights
@@ -1113,200 +1284,183 @@ ggplot2::ggplot(RW.Results, aes(x=reorder(Variables,Rescaled.RelWeight),y=Rescal
 set.seed(123456)
 
 #2.4 run boot function
-logBoot<-boot(mydata, # Data
+logBoot_B3<-boot(mydata_B3, # Data
               logBootstrap, # Statistic
               5000) # R / number of times
+ 
 
 #2.5 confidence interval for bootstraps
-logci<-boot.ci(logBoot,conf=0.95, type="bca")
+logci_B3<-boot.ci(logBoot,conf=0.95, type="bca")
 
-logci
+boot.ci(logBoot_B3, type="bca",index = 1)
+
 #2.6 runboot function
-numVar<-NCOL(mydata)
+numVar<-NCOL(mydata_B3)
 
-library(broom)
-CI.Results<- tidy(logBoot,conf.int=TRUE,conf.method="perc") 
-write_csv(CI.Results, "~/Downloads/CI.Results")
+CI.Result_B3s<- tidy(logBoot_B3,conf.int=TRUE,conf.method="perc") 
+CI.Results_B3
+write_csv(CI.Results_B3, "~/Downloads/CI.Results_B3")
 # runBoot(length(mydata[,2:numVar]))
 
+
+
+boot.ci(logBoot_B3, type="bca",index = 1)
 # # runBoot<-function(num){
+
+#3 #Bootstrapped Confidence interval tests of Significance
+#Please be patient -- This can take a few minutes to run
+#3.1 
+# randVar<-rnorm(length(mydata[,1]),0,1)
+# randData<-cbind(mydata,randVar)
+# randData <- na.omit(randData)
+# logRBoot<-boot(mydata,logBootrand, 5000)
+# logRci<-boot.ci(logRBoot,conf=0.95, type="bca")
 # 
-# INDEX<-1:length(mydata[,2:numVar])
-# INDEX
-# test<-lapply(INDEX, FUN=mybootci)
-# test
-# test2<-t(sapply(test,'[[',i=4)) #extracts confidence interval
-# CIresult<<-data.frame(Variables, CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5])
-# # }
-# CI.Results<-CIresult
+# rand_CI_B3<- tidy(logRBoot,conf.int=TRUE,conf.method="perc")
+# write_csv(rand_CI,"~/Downloads/rand_CI")
+# runRBoot(length(randData[,2:(numVar-1)]))
+# CI.Significance<-CIresult
+# rand_CI
+
+#Rsq.O - logistic analog to Rsq
+RSQ.o_B3
+
+#The Raw and Rescaled Weights
+RW.Results_B3
+
+sum(RW.Results$Raw.RelWeight)
+
+#BCa Confidence Intervals around the raw weights
+CI.Results_B3
+colnames(CI.Results_B3) <- paste0(colnames(CI.Results_B3),"_CI")
+
+#BCa Confidence Interval Tests of significance
+rand_CI_B3
+colnames(rand_CI_B3) <- paste0(colnames(rand_CI_B3),"_CI_R")
+#If Zero is not included, Weight is Significant
 ```
 
 
 ```{r, results='hide'}
-#3 #Bootstrapped Confidence interval tests of Significance
-#Please be patient -- This can take a few minutes to run
-#3.1 
+weights_CI <- CI.Results |>
+  mutate(
+  Weight = round(statistic_CI*100,2),
+  CI = paste0("[",
+              round(conf.low_CI*100,2), ", ", round(conf.high_CI*100,2), "]")
+  )
 
-randVar<-rnorm(length(mydata[,1]),0,1)
-randData<-cbind(mydata,randVar)
-randData <- na.omit(randData)
-logRBoot<-boot(mydata,logBootrand, 5000)
-logRci<-boot.ci(logRBoot,conf=0.95, type="bca")
+wt_df <- left_join(RW.Results,weights_CI, by= join_by(Raw.RelWeight==statistic_CI))
+wt_df <- wt_df |>
+  mutate(
+    raw_weights = round(Raw.RelWeight*100,2),
+    scale_check = round((Raw.RelWeight/sum(Raw.RelWeight)*100),2),
+    CI_Low_raw = Rescaled.RelWeight - (1.96*(std.error_CI*100)),
+    CI_High_raw = Rescaled.RelWeight + (1.96*(std.error_CI*100)),
+    CI_low_rescale = conf.low_CI/(RSQ.o),
+    CI_high_rescale = conf.high_CI/(RSQ.o),
+    CI_low_percent = round(CI_low_rescale*100,2),
+    CI_high_percent = round(CI_high_rescale*100,2),
+    CI_rescale =
+      paste0("[",CI_low_percent, ", ", CI_high_percent, "]"),
+    wt_text = paste0(Rescaled.RelWeight, " [",CI_low_percent, ", ", CI_high_percent, "]")
+  )
 
-rand_CI<- tidy(logBoot,conf.int=TRUE,conf.method="perc")
-write_csv(rand_CI,"~/Downloads/rand_CI")
-runRBoot(length(randData[,2:(numVar-1)]))
-CI.Significance<-CIresult
+wt_df <- left_join(wt_df,Full_OR_tab, by= join_by(Variables==variable))
 
-
-
-#Rsq.O - logistic analog to Rsq
-RSQ.o
-
-#The Raw and Rescaled Weights
-RW.Results
-
-#BCa Confidence Intervals around the raw weights
-CI.Results
-
-#BCa Confidence Interval Tests of significance
-
-#If Zero is not included, Weight is Significant
-CI.Significance
+wt_df
 ```
 
 ```{r}
-hsb2 <- read.table("https://stats.idre.ucla.edu/stat/data/hsb2.csv", sep=",", header=T)
+R2_plot <- ggplot2::ggplot(wt_df, aes(x=reorder(Variables,Raw.percent),y=Raw.percent)) +
+  # geom_hline(yintercept = 1,linetype="dashed",alpha = .25) +
+  # geom_hline(yintercept = .5,linetype="dashed",alpha = .25) +
+  geom_bar(stat = "identity", color = "Black") +
+  ggtitle("Psuedo R^2 (%) of predictors on Physical Activity") +
+  theme_classic() +
+  xlab('Variable')+
+  ylab('Psuedo R^2 (%) in physical activity')+
+  ylim(0,3)+
+  geom_text(aes(label = Raw.percent), vjust =.5, hjust = -.5, color = "black")+
+  coord_flip() 
+
+CI_R2 <-  
+      wt_df |>
+      ggplot() +
+        geom_text(aes(x = 0, y = reorder(Variables,Raw.percent), label = CI), hjust = 0) +
+        theme_void() 
+        # coord_cartesian(ylim = c(1,length(FP_dep$Variable)))
+
+library(patchwork)
+layout <- c(
+  patchwork::area(t = 0, l = 0, b = 30, r = 21),
+  patchwork::area(t = 0, l = 16, b = 30, r = 30)
+)
+
+R2_plot + CI_R2 + plot_layout(design = layout)
+```
 
 
-# logBootstrap<-function(mydata, indices){
-# mydata<-mydata[indices,]
-# logWeights<-logRegress(mydata)
-# return(logWeights$Raw.RelWeight)
-
-#turn off set.seed() if you want the results to vary
-set.seed(626)
-bootcorr <- boot(hsb2, fc, R=500)
-bootcorr
+```{r, results='hide'}
+ # wt_df <- wt_df |>
+ #  mutate(
+ #    
+ #    
+ #    
+ # 
+ #    
+ # 
+ #  )
+ # 
+ # 
 
 ```
 
 
-
-```{r}
-# logci<-boot.ci(logBoot,conf=0.95, type="bca")
-# 
-# runBoot(length(thedata[,2:numVar]))
-# 
-# CI.Results<-CIresult
-# logBoot<-boot(thedata, # Data 
-#               logBootstrap, # Statistic
-#               10000) # R / number of times
-
-
-logci<-boot.ci(logBoot,conf=0.95, type="bca")
-runBoot(length(mydata[,2:numVar]))
-CI.Results<-CIresult
-
-logBootstrap<-function(mydata, indices){
-  
-mydata<-mydata[indices,]
-logWeights<-logRegress(mydata)
-return(logWeights$Raw.RelWeight)
-}
-
-?boot()
-
-mybootci<-function(x){
-boot.ci(logBoot,conf=0.95, type="bca", index=x)
-}
-
-
-logBoot<-boot(
-                mydata, # data
-                logBootstrap, #statistic
-                10000 # R / number of times
-                )
-
-
-#Bootstrapped Confidence interval tests of Significance
-#Please be patient -- This can take a few minutes to run
-randVar<-rnorm(length(mydata[,1]),0,1)
-randData<-cbind(mydata,randVar)
-logRBoot<-boot(randData,logBootrand, 10000)
-logRci<-boot.ci(logRBoot,conf=0.95, type="bca")
-runRBoot(length(randData[,2:(numVar-1)]))
-CI.Significance<-CIresult
-
-#Rsq.O - logistic analog to Rsq
-RSQ.o
-
-#The Raw and Rescaled Weights
-RW.Results
-
-#BCa Confidence Intervals around the raw weights
-CI.Results
-
-#BCa Confidence Interval Tests of significance
-#If Zero is not included, Weight is Significant
-CI.Significance
-```
-
-```{r}
-#Bootstrap Confidence interval around the individual relative weights
-
-#Please be patient -- This can take a few minutes to run
-
-logBoot<-boot(thedata, logBootstrap, 10000)
-
-logci<-boot.ci(logBoot,conf=0.95, type="bca")
-
-runBoot(length(thedata[,2:numVar]))
-
-CI.Results<-CIresult
-
-
-#Bootstrapped Confidence interval tests of Significance
-
-#Please be patient -- This can take a few minutes to run
-
-randVar<-rnorm(length(thedata[,1]),0,1)
-
-randData<-cbind(thedata,randVar)
-
-logRBoot<-boot(randData,logBootrand, 10000)
-
-logRci<-boot.ci(logRBoot,conf=0.95, type="bca")
-
-runRBoot(length(randData[,2:(numVar-1)]))
-
-CI.Significance<-CIresult
+```{r, results='hide'}
+wt_plot <- ggplot2::ggplot(wt_df, aes(x=reorder(Variables,Rescaled.RelWeight),y=Rescaled.RelWeight)) +
+  # geom_hline(yintercept = 1,linetype="dashed",alpha = .25) +
+  # geom_hline(yintercept = .5,linetype="dashed",alpha = .25) +
+  geom_bar(stat = "identity", color = "Black") +
+  #ggtitle("Relative weight of predictors on Physical Activity") +
+  labs(
+    title = "Relative weight of predictors on Physical Activity",
+    subtitle = "With 5000 bootstraped confidence intervals",
+  ) +
+  theme_classic() +
+  xlab('Variable')+
+  ylab('% weight (i.e., relative importance) of variance (Pseudo R^2) in physical activity')+
+  ylim(0,45)+
+  geom_text(aes(label = wt_text), vjust =.5, hjust = -.1, color = "black")+
+  coord_flip() 
 
 
 
-#Rsq.O - logistic analog to Rsq
 
-RSQ.o
-
-
-
-#The Raw and Rescaled Weights
-
-RW.Results
-
-#BCa Confidence Intervals around the raw weights
-
-CI.Results
-
-#BCa Confidence Interval Tests of significance
-
-#If Zero is not included, Weight is Significant
-
-CI.Significance
+wt_df %>%
+  ggplot(aes(y = reorder(Variables, Rescaled.RelWeight))) +
+  geom_linerange(aes(xmin=CI_low_percent, xmax=CI_high_percent),size = 1.25, show.legend = FALSE) +
+  #geom_errorbar(aes(xmin=CI_low_percent, xmax=CI_high_percent),width =.5, show.legend = FALSE) +
+    geom_point(aes(x=Rescaled.RelWeight), shape = 18, size=5,show.legend = FALSE, color="red") +
+  theme_classic() 
 ```
 
 
+```{r, results='hide'}
+Wald_plot  <- wt_df |>
+      ggplot() +
+        geom_text(aes(x = 0, y = reorder(Variables,Raw.percent), label = Wald), hjust = 0) +
+        theme_void() 
+        # coord_cartesian(ylim = c(1,length(FP_dep$Variable)))
+      
+library(patchwork)
+layout <- c(
+  patchwork::area(t = 0, l = 0, b = 30, r = 20),
+  patchwork::area(t = 0, l = 16, b = 30, r = 30)
+)
 
+wt_plot + Wald_plot + plot_layout(design = layout)
+
+```
 
 
 
@@ -1316,20 +1470,46 @@ using varImp from {caret} we can examine the relative importance of each variabl
 library(caret)
 #https://topepo.github.io/caret/variable-importance.html
 
-V <- varImp(MHC_Reg, Scale=FALSE)
+V <- varImp(MHC_Reg, Scale=TRUE)
 
-V
+V <- V |>
+  mutate(
+    wt_scaled = round((Overall/sum(Overall))*100,2),
+  variable = 
+    c("Age", "College", "White_Race", "Income_60k_plus", "Combat_Veteran", 
+      "TOTAL_TRAUMAS", "BMI", "Athsma", "Chron_pain", "Diabetes", "Hrt_atk", 
+      "Hrt_dis",
+      "High_chol", "High_bld_press", "Osteoporosis", "Stroke", "AUD_Current", 
+      "DUD_Current", "MDD_Current", "PTSD_Current","GAD_Current")
+  )
+
+V <- left_join(V,Full_OR_tab, by= join_by(variable==variable))
+
 
 # For classification, ROC curve analysis is conducted on each predictor. For two class problems, a series of cutoffs is applied to the predictor data to predict the class. The sensitivity and specificity are computed for each cutoff and the ROC curve is computed. The trapezoidal rule is used to compute the area under the ROC curve. This area is used as the measure of variable importance
 
-ggplot2::ggplot(V, aes(x=reorder(rownames(V),Overall), y=Overall)) +
+L <- ggplot2::ggplot(V, aes(x=reorder(variable,wt_scaled), y=wt_scaled)) +
 geom_point( color="blue", size=4, alpha=0.6)+
-geom_segment( aes(x=rownames(V), xend=rownames(V), y=0, yend=Overall), 
+geom_segment( aes(x=variable, xend=variable, y=0, yend=wt_scaled), 
 color='skyblue') +
 xlab('Variable')+
-ylab('Overall Importance')+
-theme_light() +
+ylab('Overall Importance (%) explained')+
+theme_classic() +
 coord_flip() 
+
+Wald_plot  <- wt_df |>
+      ggplot() +
+        geom_text(aes(x = 0, y = reorder(Variables,Raw.percent), label = Wald), hjust = 0) +
+        theme_void() 
+        # coord_cartesian(ylim = c(1,length(FP_dep$Variable)))
+      
+library(patchwork)
+layout <- c(
+  patchwork::area(t = 0, l = 0, b = 30, r = 21),
+  patchwork::area(t = 0, l = 16, b = 30, r = 30)
+)
+
+L + Wald_plot + plot_layout(design = layout)
 ```
 
 ### relative weight analysis
@@ -1337,6 +1517,28 @@ coord_flip()
 devtools::install_github("martinctc/rwa")
 #https://langtest.jp/shiny/rwa/
 library(rwa)
+
+RWA <- mydata_B3 %>%
+  rwa(outcome = "Ex_rec",
+      predictors = 
+        c("Age", "College", "White_Race", "Income_60k_plus", "Combat_Veteran", 
+      "TOTAL_TRAUMAS", "BMI", "Athsma", "Chron_pain", "Diabetes", "Hrt_atk", 
+      "Hrt_dis",
+      "High_chol", "High_bld_press", "Osteoporosis", "Stroke", "AUD_Current", 
+      "DUD_Current", "MDD_Current", "PTSD_Current","GAD_Current"),
+      applysigns = TRUE,
+      plot = TRUE)
+
+RWA$result
+
+RWA_plot <- ggplot2::ggplot(RWA$result, aes(x=reorder(Variables,Rescaled.RelWeight), y=Rescaled.RelWeight)) +
+geom_point( color="blue", size=4, alpha=0.6)+
+geom_segment( aes(x=Variables, xend=Variables, y=0, yend=Rescaled.RelWeight), 
+color='skyblue') +
+xlab('Variable')+
+ylab('Overall Importance (%) explained')+
+theme_classic() +
+coord_flip() 
 ```
 
 RElative importance analysis
@@ -1741,7 +1943,7 @@ HC_df2<- cbind(HC_df, predict(fit2, newdata = HC_df, type = "response",
 
 HC_df2 <- HC_df2 |>
   mutate(
-    LL = fit - (1.96 * se.fit),
+    LL = fit - (1.96 * (se.fit),
     UL = fit + (1.96 * se.fit)
   )
 
