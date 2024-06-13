@@ -81,7 +81,10 @@ thesis_NHRVS <- dplyr::select(NHRVS_2019,
       Q22B_2,Q22B_3,Q22B_4,Q22B_5,
     #Exercise variables ___________
       godin_mild_winsor,godin_Mod_winsor,godin_Stren_winsor,HCS,HCS_Cats,
-      godin_total_ac,god3cat,god2cat,GODIN_outliers)
+      godin_total_ac,god3cat,god2cat,GODIN_outliers,
+    #Education variables __________\
+    ppeduc, ppeducat
+    )
     
 #Rename variabes
 thesis_NHRVS <- rename(thesis_NHRVS,
@@ -114,7 +117,9 @@ thesis_NHRVS <- rename(thesis_NHRVS,
       SI_Current = SI_CURRENT,
       AUD_Current = AUD_CURRENT,
       DUD_Current = DUD_CURRENT,
-      Concussion_current = Concussion_PosScreen
+      Concussion_current = Concussion_PosScreen,
+      edu = ppeduc,
+      Education_Cat = ppeducat 
 )
 # We need exercsie variables that are in MET minutes, not just HCS. 
 # We also need to create demographic and health variables
@@ -199,6 +204,8 @@ mutate(thesis_NHRVS,
           # SI_Current = SI_CURRENT,
           AUD_Current = as.factor(AUD_Current),
           DUD_Current = as.factor(DUD_Current),
+    #Education variables
+      Education_Cat = as.factor(Education_Cat) 
     )
 thesis_NHRVS <- mutate(thesis_NHRVS, 
         Ex_3cat = recode(Ex_3cat,
@@ -233,7 +240,18 @@ thesis_NHRVS <- mutate(thesis_NHRVS,
                          "1" = "MHC"),
         Any_PHC = recode(Any_PHC,
                          "0" = "No_con",
-                         "1" = "PHC"))
+                         "1" = "PHC"),
+        Education = ifelse(edu <= 9, "HS Education or Less",
+                    ifelse(edu == 10 | edu == 11, "Some College",
+                    ifelse(edu == 12, "Bacholars Degree", "Advanced Degree"
+                    ))),
+        Education = as.factor(Education),
+        Educatoin_Cat  = recode(Education_Cat,
+                         "1" = "< HS",
+                         "2" = "HS",
+                         "3" = "Some College",
+                         "4" = "Bachelor or Higher")
+        )
 
 #Filter out NA values
 thesis_NHRVS <- thesis_NHRVS %>%
@@ -262,6 +280,7 @@ thesis_NHRVS <- thesis_NHRVS %>%
   filter(!is.na(PTSD_Current)) %>%
   filter(!is.na(AUD_Current)) %>%
   filter(!is.na(DUD_Current)) %>%
+  filter(!is.na(edu)) |>
   filter(!is.na(GAD_Current)) |>
   mutate(Obesity = ifelse(is.na(BMI), NA,
       ifelse(BMI >=30,1,0)),
@@ -1071,1102 +1090,686 @@ EX_text + EX_FP + plot_layout(design = layout)
 ```
 
 
-<!-- ## Importance of variables -->
-<!-- https://journals-sagepub-com.ezproxy.uky.edu/doi/abs/10.1177/1094428109341993?journalCode=orma -->
-
-<!-- Select data needed for analysis -->
-<!-- ```{r} -->
-<!-- RIA_Vars<-fp_df |> -->
-<!--   # arrange(p.adjusted) -->
-<!--   filter(p.adjusted <0.05) -->
-<!-- RIA_Vars -->
-<!-- ``` -->
-
-
-<!-- ```{r} -->
-<!-- mydata <- thesis_NHRVS |> -->
-<!--     mutate(Obesity = ifelse(is.na(BMI), NA, -->
-<!--       ifelse(BMI >=30,1,0)) -->
-<!--     ) |> -->
-<!--   #Select all of the variables needed for the analysis -->
-<!--   dplyr::select( -->
-<!--     #IV -->
-<!--       Ex_rec, -->
-<!--     #Covariates -->
-<!--        Age,College, -->
-<!--        Income_60k_plus, -->
-<!--     #Physical Health Conditions -->
-<!--        Athsma, Diabetes, Obesity, -->
-<!--        # Hrt_atk, Hrt_dis,  -->
-<!--     #Mental Health conditions -->
-<!--       DUD_Current, GAD_Current, MDD_Current,  -->
-<!--   )|> -->
-<!--     # Convert all of the varaibles to numeric -->
-<!--     mutate( -->
-<!--       Ex_rec = as.numeric(Ex_rec), -->
-<!--       Age = as.numeric(Age), -->
-<!--       College = as.numeric(College), -->
-<!--       Income_60k_plus = as.numeric(Income_60k_plus), -->
-<!--       Obesity = as.numeric(Obesity), -->
-<!--       Athsma = as.numeric(Athsma), -->
-<!--       Diabetes = as.numeric(Diabetes), -->
-<!--       DUD_Current = as.numeric(DUD_Current),  -->
-<!--       GAD_Current = as.numeric(GAD_Current), -->
-<!--       MDD_Current = as.numeric(MDD_Current),  -->
-
-<!--     ) -->
-
-<!-- mydata <- na.omit(mydata) -->
-<!-- ``` -->
-
-<!-- Functions for bootstrapping -->
-<!-- ```{r} -->
-<!-- logRegress<-function(mydata){ -->
-
-<!-- numVar<-NCOL(mydata) -->
-<!-- Variables<-names(mydata)[2:numVar] -->
-<!-- Y<-mydata[,1] -->
-<!-- data.preds<-mydata[,2:length(mydata[1,])] -->
-<!-- X<-scale(data.preds) -->
-
-
-<!-- str(X) -->
-
-<!-- X.svd<-svd(X) -->
-<!-- Q<-X.svd$v -->
-<!-- P<-X.svd$u -->
-<!-- Z<-P%*%t(Q) -->
-
-<!-- Z.stand<-scale(Z) -->
-
-<!-- Lambda<-solve(t(Z.stand)%*%Z.stand)%*%t(Z.stand)%*%X #Obtaining Lambda from equation 7 from Johnson (2000) pg 8 -->
-
-<!-- logrfit<-glm(as.factor(Y$Ex_rec)~Z.stand,family=binomial) -->
-<!-- summary(logrfit) -->
-<!-- unstCoefs<-coef(logrfit) -->
-<!-- b<-unstCoefs[2:length(unstCoefs)] -->
-<!-- LpredY<-predict(logrfit,newdata=mydata,type="response") -->
-<!-- lYhat<-log(LpredY/(1-LpredY))#Creating logit-Y-hat -->
-<!-- stdlYhat<-sd(lYhat)#Getting stdev of logit-Y-hat -->
-<!-- getting.Rsq<-lm(LpredY~as.factor(Y$Ex_rec))#Getting R-sq -->
-<!-- Rsq<-summary(getting.Rsq)$r.squared -->
-<!-- beta<-b*((sqrt(Rsq))/stdlYhat)#Computing standardized logistic regression coefficients -->
-
-<!-- epsilon<-Lambda^2%*%beta^2 -->
-<!-- R.sq<<-sum(epsilon) -->
-<!-- PropWeights<-(epsilon/R.sq) -->
-<!-- result <- data.frame(Variables, Raw.RelWeight=epsilon, Rescaled.RelWeight=PropWeights) -->
-<!-- return(result) -->
-<!-- } -->
-
-<!-- logBootstrap<-function(mydata, indices){ -->
-<!-- mydata<-mydata[indices,] -->
-<!-- logWeights<-logRegress(mydata) -->
-<!-- return(logWeights$Raw.RelWeight) -->
-<!-- } -->
-
-<!-- logBootstrap_adj<-function(mydata, indices){ -->
-<!-- mydata<-mydata[indices,] -->
-<!-- logWeights<-logRegress(mydata) -->
-<!-- return(logWeights$Rescaled.RelWeigh) -->
-<!-- } -->
-
-<!-- logBootrand<-function(mydata, indices){ -->
-<!-- mydata<-mydata[indices,] -->
-<!-- logRWeights<-logRegress(mydata) -->
-<!-- logReps<-logRWeights$Raw.RelWeight -->
-<!-- randWeight<-logReps[length(logReps)] -->
-<!-- randStat<-logReps[-(length(logReps))]-randWeight -->
-<!-- return(randStat) -->
-<!-- } -->
-
-<!-- #bootstrapping -->
-<!-- #install.packages("boot") -->
-
-<!-- mybootci<-function(x){ -->
-<!-- boot.ci(logBoot,conf=0.95, type="bca", index=x) -->
-<!-- } -->
-
-<!-- runBoot<-function(num){ -->
-<!-- INDEX<-1:num -->
-<!-- test<-lapply(INDEX, FUN=mybootci) -->
-<!-- test -->
-<!-- test2<-t(sapply(test,'[[',i=4)) -->
-<!-- return(test2) -->
-<!-- # CIresult<<-data.frame(Variables = coln, CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5]) -->
-<!-- } -->
-
-<!-- myRbootci<-function(x){ -->
-<!-- boot.ci(logRBoot,conf=0.95,type="bca",index=x) -->
-<!-- } -->
-
-<!-- runRBoot<-function(num){ -->
-<!-- INDEX<-1:num -->
-<!-- test<-lapply(INDEX,FUN=myRbootci) -->
-<!-- test2<-t(sapply(test,'[[',i=4)) -->
-<!-- CIresult<<-data.frame(Labels,CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5]) -->
-<!-- } -->
-<!-- ``` -->
-
-
-<!-- ```{r, results='hide'} -->
-<!-- #1.1 Run function -->
-<!-- result <- logRegress(mydata) -->
-
-<!-- #1.2 save results from function -->
-<!-- RW.Results<-result -->
-<!-- RSQ.o<-R.sq -->
-
-<!-- RW.Results <- result |> -->
-<!--   arrange(-Rescaled.RelWeight) |> -->
-<!--   mutate(Rescaled.RelWeight.percent = round((Rescaled.RelWeight*100),2), -->
-<!--          Raw.percent = round(Raw.RelWeight*100,4) -->
-<!--   ) -->
-<!-- # write_csv(RW.Results,"~/Downloads/RW.Results") -->
-
-<!-- #1.3 display results of relative weight analysis -->
-<!-- RW.Results -->
-<!-- ``` -->
-
-
-<!-- ```{r, results='hide'} -->
-<!-- #2 Use bootstrapping functions to obtain CI's for raw and rescaled weights -->
-
-<!-- #2.1 the boot function calls the logBootstrap and logBootstrap_adj function, which just pulls out the raw.relWeight and rescaled.relWeight at a given index -->
-
-<!-- mydata_B3 <- mydata -->
-
-<!-- #2.3 Set seed -->
-<!-- set.seed(1995) -->
-
-<!-- #2.4 bootstrap for raw weights CI -->
-<!-- logBoot_B3 <-boot(mydata_B3, # Data -->
-<!--               logBootstrap, # Statistic -->
-<!--               10000) # R / number of times -->
-
-<!--  <- tidy(logBoot_B3) -->
-
-<!-- # CI.Results_tidy <- tidy(logBoot_B3,conf.int=TRUE) -->
-<!-- numVar = NCOL(mydata_B3) -->
-<!-- mydata <- mydata -->
-<!-- logBoot <-logBoot_B3 -->
-<!-- # logBoot<-boot(mydata_B3, logBootstrap, 10000) -->
-
-<!-- ?boot.ci() -->
-
-<!-- logci<-boot.ci(logBoot,conf=0.95, type="bca") -->
-<!-- numVar = length(mydata) -->
-<!-- test2 <- runBoot(length(mydata[,2:numVar])) -->
-<!-- #df with CI -->
-<!-- CI.Result<<-data.frame(Variables=colnames(mydata[2:10]), CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5]) -->
-<!-- CI.Result -->
-<!-- write_csv(CI.Result, "/Users/troyh/Downloads/CI.Result") -->
-<!-- ``` -->
-
-
-<!-- ```{r, results='hide'} -->
-<!-- #rescaled CI -->
-<!-- logBoot_adj <-boot(mydata_B3, # Data -->
-<!--               logBootstrap_adj, # Statistic -->
-<!--               10000) # R / number of times -->
-
-<!-- numVar = NCOL(mydata_B3) -->
-<!-- mydata <- mydata -->
-<!-- logBoot <-logBoot_adj -->
-<!-- # logBoot<-boot(mydata_B3, logBootstrap, 10000) -->
-<!-- logci<-boot.ci(logBoot,conf=0.95, type="bca") -->
-<!-- numVar = length(mydata) -->
-<!-- test2 <- runBoot(length(mydata[,2:numVar])) -->
-<!-- test2 -->
-
-<!-- test -->
-
-
-
-
-<!-- #df with CI -->
-<!-- CI.Result.res<<-data.frame(Variables=colnames(mydata[2:10]), CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5]) -->
-<!-- CI.Result.res -->
-<!-- write_csv(CI.Result.res, "/Users/troyh/Downloads/CI.Result") -->
-<!-- ``` -->
-
-
-<!-- ```{r, results='hide'} -->
-<!-- #Bootstrapped Confidence interval tests of Significance -->
-<!-- #Please be patient -- This can take a few minutes to run -->
-<!-- randVar<-rnorm(length(mydata[,1]),0,1) -->
-<!-- randData<-cbind(mydata,randVar) -->
-<!-- logRBoot<-boot(randData,logBootrand, 10000) -->
-<!-- logRci<-boot.ci(logRBoot,conf=0.95, type="bca") -->
-<!-- runRBoot(length(randData[,2:(numVar-1)])) -->
-<!-- CI.Significance<-CIresult -->
-
-<!-- ``` -->
-
-
-<!-- ```{r, results='hide'} -->
-<!-- #display results -->
-
-<!-- #Rsq.O - logistic analog to Rsq -->
-<!-- RSQ.o -->
-
-<!-- #The Raw and Rescaled Weights -->
-<!-- RW.Results -->
-
-<!-- #BCa Confidence Intervals around the raw weights -->
-<!-- colnames(CI.Result) <- paste0(colnames(CI.Result),"_Raw") -->
-<!-- CI.Result -->
-
-<!-- #Confidence intervals -->
-<!-- colnames(CI.Result.res) <- paste0(colnames(CI.Result.res),"_Rescale") -->
-<!-- CI.Result.res -->
-<!-- #If Zero is not included, Weight is Significant -->
-
-<!-- #left join bootstraped results to RW.Results df -->
-<!-- RW.Results -->
-<!-- RW.Results <- left_join(RW.Results,CI.Result, by = join_by(Variables == Variables_Raw)) -->
-<!-- RW.Results <- left_join(RW.Results,CI.Result.res, by = join_by(Variables == Variables_Rescale)) -->
-
-<!-- #final DF -->
-<!-- RW.Results -->
-<!-- ``` -->
-
-<!-- bar plots of results -->
-<!-- ```{r, results='hide'} -->
-<!-- #create new df with CIs and values as % -->
-<!-- wt_df <- RW.Results |> -->
-<!--   mutate( -->
-<!--   raw.CI = paste0("[", round(CI.Lower.Bound_Raw*100,2), ", ",  -->
-<!--                   round(CI.Upper.Bound_Raw*100,2), "]"), -->
-<!--   raw.CI.low = round(CI.Lower.Bound_Raw*100,2), -->
-<!--   raw.CI.high = round(CI.Upper.Bound_Raw*100,2), -->
-<!--   res.CI = paste0("[", round(CI.Lower.Bound_Rescale*100,2), ", ",  -->
-<!--                   round(CI.Upper.Bound_Rescale*100,2), "]"), -->
-<!--   res.CI.low = round(CI.Lower.Bound_Rescale*100,2), -->
-<!--   res.CI.high = round(CI.Upper.Bound_Rescale*100,2), -->
-<!--   order = NA, -->
-<!--   Raw.wt.text = round(Raw.percent,2), -->
-<!--   Res.wt.text = round(Rescaled.RelWeight.percent,2), -->
-<!--   raw.weight = (CI.Lower.Bound_Raw + CI.Upper.Bound_Raw)/2, -->
-<!--   res.weight = (CI.Lower.Bound_Rescale*100 + CI.Upper.Bound_Rescale*100)/2, -->
-<!--   ) -->
-<!-- wt_df -->
-<!-- ``` -->
-
-
-<!-- ```{r, results='hide'} -->
-<!-- #assign variables and put them at the top -->
-<!--   wt_df[10,]   = NA   -->
-<!--   wt_df[10,1]  = "Variable" -->
-<!--   wt_df[10,10] = "95% CI" -->
-<!--   wt_df[10,13] = "95% CI" -->
-<!--   wt_df[10,17]  = "R2o (%)"   -->
-<!--   wt_df[10,18]  = "Rescaled R2o (%)"  -->
-
-<!--   wt_df$order  = c(seq(2,10,1),1) -->
-<!--   wt_df <- arrange(wt_df,order) -->
-
-<!-- wt_df -->
-<!-- write.csv() -->
-
-<!-- ?reorder() -->
-<!-- ``` -->
-
-<!-- code -->
-<!-- ```{r} -->
-<!-- # # plot raw R^2 values w/ 95% CI -->
-<!-- # R2_plot <-  -->
-<!-- #   ggplot2::ggplot(wt_df, aes(x=reorder(Variables,-order),y=Raw.percent)) + -->
-<!-- #   # geom_hline(yintercept = 1,linetype="dashed",alpha = .25) + -->
-<!-- #   # geom_hline(yintercept = .5,linetype="dashed",alpha = .25) + -->
-<!-- #   geom_bar(stat = "identity", color = "Black", width = .75, fill = "#91c3e6" ) + -->
-<!-- #   geom_errorbar(aes(ymin=raw.CI.low, ymax=raw.CI.high,width =.3, show.legend = FALSE)) + -->
-<!-- #   labs( -->
-<!-- #     #title = "     Varaince Explained (%) Of Phsyical Activity by Predictors", -->
-<!-- #     subtitle = "      Varaince Explained (%) Of Phsyical Activity by Predictors", -->
-<!-- #   ) + -->
-<!-- #   theme_classic() + -->
-<!-- #   xlab('Variable')+ -->
-<!-- #   ylab('R2o in physical activity (%)')+ -->
-<!-- #   ylim(0,2.5)+ -->
-<!-- #   coord_flip() + -->
-<!-- #   theme(axis.line.y = element_blank(), -->
-<!-- #         axis.ticks.y= element_blank(), -->
-<!-- #         axis.text.y= element_blank(), -->
-<!-- #         axis.title.y= element_blank()) -->
-<!-- #  -->
-<!-- # R2_plot -->
-<!-- #  -->
-<!-- # #plot table left of text -->
-<!-- # wt_df$Variables = c("Variable","Obesity","Some College","Diabetes", "Age",  -->
-<!-- #                     "Income ≥ 60k", "Asthma", "Probable Current MDD", -->
-<!-- #                     "Probable Current GAD", "Probable Current DUD" -->
-<!-- #                     ) -->
-<!-- #  -->
-<!-- #  -->
-<!-- #  -->
-<!-- # R2_text <-  -->
-<!-- #   wt_df |> -->
-<!-- #   ggplot(aes(y = reorder(Variables, -order))) + -->
-<!-- #   geom_text(aes(x = 0, label = Variables), hjust = 0,  -->
-<!-- #         fontface = ifelse(wt_df$Variables == "Variable", "bold","plain")) + -->
-<!-- #   geom_text(aes(x = 1.2, label = Raw.wt.text), -->
-<!-- #         hjust = 0, -->
-<!-- #         fontface = ifelse(wt_df$Raw.wt.text == "R2o (%)", "bold","plain")) + -->
-<!-- #   geom_text(aes(x = 1.7, label = raw.CI), -->
-<!-- #         hjust = 0, -->
-<!-- #         fontface = ifelse(wt_df$raw.CI == "95% CI", "bold","plain")) + -->
-<!-- #   theme_void() +      -->
-<!-- #   coord_cartesian(ylim = c(1,length(wt_df$Variables)), xlim = c(0, 4)) -->
-<!-- #    -->
-<!-- # library("patchwork") -->
-<!-- #  -->
-<!-- # layout <- c( -->
-<!-- #   patchwork::area(t = 0, l = 0, b = 30, r = 30), -->
-<!-- #   patchwork::area(t = 0, l = 18, b = 30, r = 35) -->
-<!-- # ) -->
-<!-- #  -->
-<!-- # R2_text + R2_plot + plot_layout(design = layout) -->
-<!-- #  -->
-
-<!-- ``` -->
-
-<!-- ### Part 5 barplots -->
-
-<!-- Scaled weight Barplot  -->
-<!-- ```{r, results='hide'} -->
-<!-- # wt_plot <-  -->
-<!--   ggplot2::ggplot(wt_df, aes(x=stats::reorder(Variables,-order),y=Rescaled.RelWeight.percent)) + -->
-<!--   geom_bar(stat = "identity", color = "Black", width = .75, fill = "#91c3e6" )+ -->
-<!--   geom_errorbar(aes(ymin=res.CI.low, ymax=res.CI.high,width =.3, show.legend = FALSE)) + -->
-<!--   labs( -->
-<!--     # title = "     Relative Weight (%) Of Predictors On Physical Activity", -->
-<!--     subtitle ="Relative Weight (%) Of Predictors On Physical Activity"  -->
-<!--       #"      RIA with 10000 bootstrapped confidence intervals" -->
-<!--   ) + -->
-<!--   theme_classic() + -->
-<!--   xlab('Variable')+ -->
-<!--   ylab('Weight (%) of variance (R2o) in physical activity')+ -->
-<!--   ylim(0,50)+ -->
-<!--   # geom_text(aes(label = wt_text), vjust =.5, hjust = -.1, color = "black")+ -->
-<!--   coord_flip()  + -->
-<!--     theme(axis.line.y = element_blank(), -->
-<!--         axis.ticks.y= element_blank(), -->
-<!--         axis.text.y= element_blank(), -->
-<!--         axis.title.y= element_blank()) -->
-
-<!-- wt_text <-  -->
-<!--   wt_df |> -->
-<!--   ggplot(aes(y = reorder(Variables, -order))) + -->
-<!--   geom_text(aes(x = 0, label = Variables), hjust = 0,  -->
-<!--         fontface = ifelse(wt_df$Variables == "Variable", "bold","plain")) + -->
-<!--   geom_text(aes(x = 1.1, label = Res.wt.text), -->
-<!--         hjust = 0, -->
-<!--         fontface = ifelse(wt_df$Res.wt.text == "Scaled Weight (%)", "bold","plain")) + -->
-<!--   geom_text(aes(x = 2, label = rescale.CI), -->
-<!--         hjust = 0, -->
-<!--         fontface = ifelse(wt_df$rescale.CI == "95% CI", "bold","plain")) + -->
-<!--   theme_void() +      -->
-<!--   coord_cartesian(ylim = c(1,length(wt_df$Variables)), xlim = c(0, 4)) -->
-
-<!-- library("patchwork") -->
-
-<!-- layout <- c( -->
-<!--   patchwork::area(t = 0, l = 0, b = 30, r = 30), -->
-<!--   patchwork::area(t = 0, l = 21, b = 30, r = 40) -->
-<!-- ) -->
-
-<!-- wt_text + wt_plot + plot_layout(design = layout) -->
-<!-- ``` -->
-
-
-<!-- ```{r, results='hide'} -->
-<!-- wt_df <- RW.Results |> -->
-<!--   mutate( -->
-<!--   raw.CI = paste0("[", round(conf.low_Raw.CI*100,2), ", ",  -->
-<!--                   round(conf.high_Raw.CI*100,2), "]"), -->
-<!--   raw.CI.low = round(conf.low_Raw.CI*100,2), -->
-<!--   raw.CI.high = round(conf.high_Raw.CI*100,2), -->
-<!--   rescale.CI = paste0("[", round(conf.low_Rescale.CI*100,2), ", ",  -->
-<!--                       round(conf.high_Rescale.CI*100,2), "]"), -->
-<!--   rescale.CI.low = round(conf.low_Rescale.CI*100,2), -->
-<!--   rescale.CI.high = round(conf.high_Rescale.CI*100,2), -->
-<!--   order = NA, -->
-<!--   Raw.wt.text = round(Raw.percent,2), -->
-<!--   Res.wt.text = round(Rescaled.RelWeight.percent,2) -->
-<!--   ) -->
-<!-- ``` -->
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!-- using varImp from {caret} we can examine the relative importance of each variable -->
-<!-- ### Binary outcome -->
-<!-- ```{r} -->
-<!-- # library(caret) -->
-<!-- # #https://topepo.github.io/caret/variable-importance.html -->
-<!-- #  -->
-<!-- # V <- varImp(MHC_Reg, Scale=TRUE) -->
-<!-- #  -->
-<!-- # V <- V |> -->
-<!-- #   mutate( -->
-<!-- #     wt_scaled = round((Overall/sum(Overall))*100,2), -->
-<!-- #   variable =  -->
-<!-- #     c("Age", "College", "White_Race", "Income_60k_plus", "Combat_Veteran",  -->
-<!-- #       "TOTAL_TRAUMAS", "BMI", "Athsma", "Chron_pain", "Diabetes", "Hrt_atk",  -->
-<!-- #       "Hrt_dis", -->
-<!-- #       "High_chol", "High_bld_press", "Osteoporosis", "Stroke", "AUD_Current",  -->
-<!-- #       "DUD_Current", "MDD_Current", "PTSD_Current","GAD_Current") -->
-<!-- #   ) -->
-<!-- #  -->
-<!-- # V <- left_join(V,Full_OR_tab, by= join_by(variable==variable)) -->
-<!-- #  -->
-<!-- #  -->
-<!-- # # For classification, ROC curve analysis is conducted on each predictor. For two class problems, a series of cutoffs is applied to the predictor data to predict the class. The sensitivity and specificity are computed for each cutoff and the ROC curve is computed. The trapezoidal rule is used to compute the area under the ROC curve. This area is used as the measure of variable importance -->
-<!-- #  -->
-<!-- # L <- ggplot2::ggplot(V, aes(x=reorder(variable,wt_scaled), y=wt_scaled)) + -->
-<!-- # geom_point( color="blue", size=4, alpha=0.6)+ -->
-<!-- # geom_segment( aes(x=variable, xend=variable, y=0, yend=wt_scaled),  -->
-<!-- # color='skyblue') + -->
-<!-- # xlab('Variable')+ -->
-<!-- # ylab('Overall Importance (%) explained')+ -->
-<!-- # theme_classic() + -->
-<!-- # coord_flip()  -->
-<!-- #  -->
-<!-- # Wald_plot  <- wt_df |> -->
-<!-- #       ggplot() + -->
-<!-- #         geom_text(aes(x = 0, y = reorder(Variables,Raw.percent), label = Wald), hjust = 0) + -->
-<!-- #         theme_void()  -->
-<!-- #         # coord_cartesian(ylim = c(1,length(FP_dep$Variable))) -->
-<!-- #        -->
-<!-- # library(patchwork) -->
-<!-- # layout <- c( -->
-<!-- #   patchwork::area(t = 0, l = 0, b = 30, r = 21), -->
-<!-- #   patchwork::area(t = 0, l = 16, b = 30, r = 30) -->
-<!-- # ) -->
-<!-- #  -->
-<!-- # L + Wald_plot + plot_layout(design = layout) -->
-<!-- ``` -->
-
-<!-- ### relative weight analysis -->
-<!-- ```{r} -->
-<!-- install.packages('devtools') -->
-<!-- devtools::install_github("martinctc/rwa") -->
-<!-- #https://langtest.jp/shiny/rwa/ -->
-<!-- library(rwa) -->
-
-<!-- RWA <- mydata_B3 %>% -->
-<!--   rwa(outcome = "Ex_rec", -->
-<!--       predictors =  -->
-<!--         c("Age", 'College',"White_Race", "Income_60k_plus", "Combat_Veteran",  -->
-<!--       "TOTAL_TRAUMAS", "Obesity", "Athsma", "Chron_pain", "Diabetes", "Hrt_atk",  -->
-<!--       "Hrt_dis", -->
-<!--       "High_chol", "High_bld_press", "Osteoporosis", "Stroke", "AUD_Current",  -->
-<!--       "DUD_Current", "MDD_Current", "PTSD_Current","GAD_Current"), -->
-<!--       applysigns = TRUE, -->
-<!--       plot = TRUE) -->
-
-<!-- rwa::plot_rwa(RWA$result) -->
-<!-- RWA$result -->
-
-
-<!-- # RWA_plot <-  -->
-<!--   ggplot2::ggplot(RWA$result, aes(x=reorder(Variables,Rescaled.RelWeight), y=Rescaled.RelWeight)) + -->
-<!-- geom_point( color="blue", size=4, alpha=0.6)+ -->
-<!-- geom_segment( aes(x=Variables, xend=Variables, y=0, yend=Rescaled.RelWeight),  -->
-<!-- color='skyblue') + -->
-<!-- xlab('Variable')+ -->
-<!-- ylab('Overall Importance (%) explained')+ -->
-<!-- theme_classic() + -->
-<!-- coord_flip()  -->
-<!-- ``` -->
-
-<!-- RElative importance analysis -->
-<!-- ```{r} -->
-<!-- # library(relaimpo) -->
-<!-- #  -->
-<!-- #  -->
-<!-- #   -->
-<!-- # fit1 <- glm(MET_min~ -->
-<!-- #              #Covariates -->
-<!-- #              Age + College + White_Race  + -->
-<!-- #              Income_60k_plus + Combat_Veteran +  -->
-<!-- #              TOTAL_TRAUMAS + BMI +  -->
-<!-- #              #Physical Health Conditions -->
-<!-- #              Athsma + Chron_pain + Diabetes+ Hrt_atk + -->
-<!-- #              Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke + -->
-<!-- #              #Mental Health conditions -->
-<!-- #              AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current, -->
-<!-- #              # Data -->
-<!-- #              data =thesis_NHRVS, -->
-<!-- #              # Specify weights -->
-<!-- #              weights = weight) -->
-<!-- #  -->
-<!-- # relimp <- calc.relimp(fit1, type = "lmg", importance = TRUE) -->
-<!-- # calc.relimp -->
-<!-- # ?calc.relimp() -->
-<!-- #  -->
-<!-- # # View the structure of the relimp object -->
-<!-- # str(relimp) -->
-<!-- #   -->
-<!-- # # Plot the relative importance of predictors -->
-<!-- # plot(relimp) -->
-<!-- #  -->
-<!-- # #order of which variables are important -->
-<!-- #  -->
-<!-- #  -->
-<!-- # impo_values<- unlist(relimp@lmg) -->
-<!-- # attri <- attributes(impo_values) -->
-<!-- # impo_order<- unlist(relimp@lmg.rank) -->
-<!-- #  -->
-<!-- # impo_df <- data.frame( -->
-<!-- #   cbind( -->
-<!-- #     vars = attri$names, -->
-<!-- #     round(impo_values*100,2), -->
-<!-- #     impo_order -->
-<!-- #   ) -->
-<!-- # ) -->
-<!-- # colnames(impo_df) <- c("vars","R2","Order") -->
-<!-- #  -->
-<!-- # impo_df$R2 <- as.numeric(impo_df$R2) -->
-<!-- # impo_df$Order <- as.numeric(impo_df$Order) -->
-<!-- #  -->
-<!-- # # ####### Bootstraped relimp -->
-<!-- # #  -->
-<!-- # # boot_rel <- boot.relimp(fit, type = "lmg",  -->
-<!-- # #                         nboot = 10) -->
-<!-- # #   -->
-<!-- # # boot_eval <- booteval.relimp(boot_rel) -->
-<!-- # # plot(boot_eval) -->
-<!-- # #  -->
-<!-- # #  -->
-<!-- # #  -->
-<!-- #  -->
-<!-- # ggplot2::ggplot(impo_df, aes(x=reorder(vars,-Order),y=R2), -->
-<!-- #                 ) + -->
-<!-- #   geom_hline(yintercept = 1,linetype="dashed",alpha = .25) + -->
-<!-- #   geom_hline(yintercept = .5,linetype="dashed",alpha = .25) + -->
-<!-- #   geom_bar(stat = "identity", color = "Black") + -->
-<!-- #   ggtitle("% Varaince (i.e., R^2) explaiend by predictors of Physical Activity") + -->
-<!-- #   theme_classic() + -->
-<!-- #   xlab('Variable')+ -->
-<!-- #   ylab('% of Response Variance')+ -->
-<!-- #   ylim(0,1.5)+ -->
-<!-- #   geom_text(aes(label = R2), vjust =.5, hjust = -.5, color = "black")+ -->
-<!-- #   coord_flip()  -->
-<!-- #                -->
-<!-- # ggplot2::ggplot(V, aes(x=reorder(rownames(V),Overall), y=Overall)) + -->
-<!-- # geom_point( color="blue", size=4, alpha=0.6)+ -->
-<!-- # geom_segment( aes(x=rownames(V), xend=rownames(V), y=0, yend=Overall),  -->
-<!-- # color='skyblue') + -->
-<!-- # xlab('Variable')+ -->
-<!-- # ylab('Overall Importance')+ -->
-<!-- # theme_light() + -->
-<!-- # coord_flip()  -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- install.packages("bruceR") -->
-<!-- library(bruceR) -->
-
-<!-- mod_NHRVS <- thesis_NHRVS |> -->
-<!--   mutate( -->
-<!--     GAD_Current = recode(GAD_Current, -->
-<!--       "0" = "1", -->
-<!--       "1" = "2" -->
-<!--     ), -->
-<!--     Diabetes = recode(Diabetes, -->
-<!--       "0" = "1", -->
-<!--       "1" = "2" -->
-<!--     ) -->
-<!--   ) -->
-
-<!-- str(mod_NHRVS$Diabetes) -->
-
-<!-- thesis_NHRVS$High_bld_press -->
-
-<!-- attri$names -->
-
-<!-- ###MCS -->
-<!-- #insignificant moderation -->
-<!-- PROCESS(thesis_NHRVS, -->
-<!--   x="High_bld_press", y="Ex_rec", mods = "MCS", covs = c("Age", "College", "White_Race", -->
-<!--   "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI")  -->
-<!-- ) -->
-
-<!-- #nonsignficiant -->
-<!-- PROCESS(thesis_NHRVS, -->
-<!--   x="Diabetes", y="Ex_rec", mods = "MCS", covs = c("Age", "College", "White_Race", -->
-<!--   "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI")  -->
-<!-- ) -->
-
-<!-- #Significant -->
-<!-- PROCESS(thesis_NHRVS, -->
-<!--   x="High_chol", y="Ex_rec", mods = "MCS", covs = c("Age", "College", "White_Race", -->
-<!--   "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI")  -->
-<!-- ) -->
-
-<!-- #Significant -->
-<!-- PROCESS(thesis_NHRVS, -->
-<!--   x="GAD_Current", y="Ex_rec", mods = "PCS", covs = c("Age", "College", "White_Race", -->
-<!--   "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI")  -->
-<!-- ) -->
-
-<!-- #nonsignficiant -->
-<!-- PROCESS(thesis_NHRVS, -->
-<!--   x="Diabetes", y="Ex_rec", mods = "MCS", covs = c("Age", "College", "White_Race", -->
-<!--   "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI")   -->
-<!-- ) -->
-<!-- ``` -->
-
-<!-- ## Interactions of health conditions on physical activity recomendations -->
-<!-- ```{r} -->
-<!-- # library(bruceR) -->
-<!-- # # assign a vector of covariates to be used in analysis -->
-<!-- # covs = c("Age", "College", "White_Race", -->
-<!-- #   "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") -->
-<!-- #  -->
-<!-- # ##### Diabetes -->
-<!-- # PROCESS(thesis_NHRVS, # Data -->
-<!-- #   x="Diabetes",  # Health conditoin -->
-<!-- #   mods = "GAD_Current",  # Moderator -->
-<!-- #   y="Ex_rec", # outcome variable -->
-<!-- #   covs = covs) # covariates -->
-<!-- #  -->
-<!-- # PROCESS(thesis_NHRVS, -->
-<!-- #   x="Diabetes", mods = "MDD_Current", -->
-<!-- #   y="Ex_rec", -->
-<!-- #   covs = covs) -->
-<!-- #  -->
-<!-- # PROCESS(thesis_NHRVS, -->
-<!-- #   x="Diabetes", mods = "DUD_Current", -->
-<!-- #   y="Ex_rec", -->
-<!-- #   covs = covs) -->
-<!-- #  -->
-<!-- # #### Asthma -->
-<!-- # PROCESS(thesis_NHRVS, -->
-<!-- #   x="Athsma", mods = "Total_HC", -->
-<!-- #   y="Ex_rec", -->
-<!-- #   covs = covs) -->
-<!-- #  -->
-<!-- # ### Osteoporosis -->
-<!-- #  -->
-<!-- # PROCESS(thesis_NHRVS, -->
-<!-- #   x="Osteoporosis", mods = "Total_HC", -->
-<!-- #   y="Ex_rec", -->
-<!-- #   covs = covs) -->
-<!-- #  -->
-<!-- # ### HRT Attack -->
-<!-- #  -->
-<!-- # PROCESS(thesis_NHRVS, -->
-<!-- #   x="Hrt_atk", mods = "Total_HC", -->
-<!-- #   y="Ex_rec", -->
-<!-- #   covs = covs) -->
-<!-- #  -->
-<!-- # ### High cholesterol -->
-<!-- #  -->
-<!-- # PROCESS(thesis_NHRVS, -->
-<!-- #   x="High_chol", mods = "Total_HC", -->
-<!-- #   y="Ex_rec", -->
-<!-- #   covs = covs) -->
-<!-- #  -->
-<!-- # PROCESS(thesis_NHRVS, -->
-<!-- #   x="GAD_Current" , # Health condition -->
-<!-- #   mods = "Total_HC", # moderator -->
-<!-- #   y="Ex_rec", # outcome variable -->
-<!-- #   covs = covs) -->
-<!-- #  -->
-<!-- # PROCESS(thesis_NHRVS, -->
-<!-- #   x="MDD_Current", mods = "Total_HC", -->
-<!-- #   y="Ex_rec", -->
-<!-- #   covs = covs) -->
-<!-- #  -->
-<!-- # PROCESS(thesis_NHRVS, -->
-<!-- #   x="Stroke", mods = "Total_HC", -->
-<!-- #   y="Ex_rec", -->
-<!-- #   covs = covs) -->
-<!-- ``` -->
-
-<!-- https://www.appsilon.com/post/r-logistic-regression -->
-<!-- ROC. vs AUC -->
-<!-- ```{r} -->
-<!-- library('pROC') -->
-<!-- Reg_df <- thesis_NHRVS |> -->
-<!--   dplyr::select( -->
-<!--     Ex_rec, -->
-<!--              #Covariates -->
-<!--              Age , College , White_Race  , -->
-<!--              Income_60k_plus , Combat_Veteran ,  -->
-<!--              TOTAL_TRAUMAS , BMI , -->
-<!--              #Physical Health Conditions -->
-<!--              Athsma , Chron_pain , Diabetes, Hrt_atk ,  -->
-<!--              Hrt_dis , High_chol , High_bld_press , Osteoporosis , Stroke , -->
-<!--              #Mental Health conditions -->
-<!--              AUD_Current , DUD_Current , MDD_Current , PTSD_Current , GAD_Current, -->
-<!--              # Data -->
-<!--              weight) -->
-<!-- Reg_df <-na.omit(Reg_df) -->
-
-<!-- fit1<-glm(Ex_rec~ -->
-<!--              #Covariates -->
-<!--              Age + College + White_Race  + -->
-<!--              Income_60k_plus + Combat_Veteran +  -->
-<!--              TOTAL_TRAUMAS + BMI + -->
-<!--              #Physical Health Conditions -->
-<!--              Athsma + Chron_pain + Diabetes+ Hrt_atk +  -->
-<!--              Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke + -->
-<!--              #Mental Health conditions -->
-<!--              AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current, -->
-<!--              # Data -->
-<!--              data =Reg_df, -->
-<!--              # Specify type of regression -->
-<!--              family="binomial",weights = weight) -->
-
-
-<!-- # just number of conditions -->
-<!-- probabilities <-  predict(fit1, NewData=Reg_df ,type = "response") -->
-<!-- predicted.classes <- ifelse(probabilities > 0.5, 1,0) -->
-
-<!-- #confusion matrix -->
-<!-- # table(HC_df$Ex_rec, predicted.classes) -->
-<!-- #roc -->
-<!-- roc1 <- roc(response = Reg_df$Ex_rec, -->
-<!--                predictor = probabilities) -->
-
-<!-- ggroc(roc1, legacy.axes = TRUE) + -->
-<!--   labs(x = 'False-positive rate', y = 'True-positive rate', -->
-<!--        title = 'ROC curve\nEx_rec ~ # Health Conditions + Covariates') + -->
-<!--   annotate('text', x = .5, y = .5, label = paste0('AUC: ', round(auc(roc1), digits = 2))) -->
-<!-- ``` -->
-
-
-<!-- ```{r} -->
-<!-- #just number of conditions -->
-
-<!-- HC_df <- thesis_NHRVS |> -->
-<!--   dplyr::select( -->
-<!--     #outcome -->
-<!--     Ex_rec, -->
-<!--     #covaraiates -->
-<!--     Age,College,White_Race,Income_60k_plus,Combat_Veteran,TOTAL_TRAUMAS,BMI,   -->
-<!--     #HC -->
-<!--     Total_HC, -->
-<!--     #weights -->
-<!--     weight -->
-<!--   )  -->
-
-<!-- HC_df <- na.omit(HC_df) -->
-<!-- library(caret) -->
-
-
-<!-- fit2 <- glm(Ex_rec~ -->
-<!--              #Covariates -->
-<!--              Age + College + White_Race  + -->
-<!--              Income_60k_plus + Combat_Veteran +  -->
-<!--              TOTAL_TRAUMAS + BMI +  -->
-<!--              #number of health conditions -->
-<!--              Total_HC, -->
-<!--              # Data -->
-<!--              data =HC_df, -->
-<!--              # Specify weights -->
-<!--              family = "binomial", weights = weight) -->
-
-
-<!-- #install.packages("pROC") -->
-<!-- library(pROC) -->
-
-
-<!-- # just number of conditions -->
-<!-- probabilities <-  predict(fit2, NewData=HC_df ,type = "response") -->
-<!-- predicted.classes <- ifelse(probabilities > 0.5, 1,0) -->
-
-<!-- #confusion matrix -->
-<!-- table(HC_df$Ex_rec, predicted.classes) -->
-<!-- #roc -->
-<!-- roc2 <- roc(response = HC_df$Ex_rec, -->
-<!--                predictor = probabilities) -->
-
-<!-- ggroc(roc2, legacy.axes = TRUE, col = "red") + -->
-<!--   labs(x = 'False-positive rate', y = 'True-positive rate', -->
-<!--        title = 'ROC curve\nEx_rec ~ # Health Conditions + Covariates') + -->
-<!--   annotate('text', x = .5, y = .5, label = paste0('AUC: ', round(auc(roc2), digits = 2))) -->
-
-
-<!-- both_df <- thesis_NHRVS |> -->
-<!--   dplyr::select( -->
-<!--     Ex_rec, -->
-<!--              #Covariates -->
-<!--              Age , College , White_Race  , -->
-<!--              Income_60k_plus , Combat_Veteran ,  -->
-<!--              TOTAL_TRAUMAS , BMI , -->
-<!--              #Physical Health Conditions -->
-<!--              Athsma , Chron_pain , Diabetes, Hrt_atk ,  -->
-<!--              Hrt_dis , High_chol , High_bld_press , Osteoporosis , Stroke , -->
-<!--              #Mental Health conditions -->
-<!--              AUD_Current , DUD_Current , MDD_Current , PTSD_Current , GAD_Current, -->
-<!--              Total_HC, -->
-<!--              # Data -->
-<!--              weight) -->
-<!-- both_df <-na.omit(both_df) -->
-
-<!-- fit3<-glm(Ex_rec~ -->
-<!--              #Covariates -->
-<!--              Age + College + White_Race  + -->
-<!--              Income_60k_plus + Combat_Veteran +  -->
-<!--              TOTAL_TRAUMAS + BMI + -->
-<!--              #Physical Health Conditions -->
-<!--              Athsma + Chron_pain + Diabetes+ Hrt_atk +  -->
-<!--              Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke + -->
-<!--              #Mental Health conditions -->
-<!--              AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current + -->
-<!--              Total_HC, -->
-<!--              # Data -->
-<!--              data =both_df, -->
-<!--              # Specify type of regression -->
-<!--              family="binomial",weights = weight) -->
-
-
-<!-- # just number of conditions -->
-<!-- probabilities3 <-  predict(fit3, NewData=Both_df ,type = "response") -->
-<!-- predicted.classes3 <- ifelse(probabilities3 > 0.5, 1,0) -->
-
-<!-- #confusion matrix -->
-<!-- table(HC_df$Ex_rec, predicted.classes3) -->
-<!-- #roc -->
-<!-- roc3 <- roc(response = both_df$Ex_rec, -->
-<!--                predictor = probabilities3) -->
-
-<!-- ggroc(roc3, legacy.axes = TRUE) + -->
-<!--   labs(x = 'False-positive rate', y = 'True-positive rate', -->
-<!--        title = 'ROC curve\nEx_rec ~ # Health Conditions + Conditions +  Covariates') + -->
-<!--   annotate('text', x = .5, y = .5, label = paste0('AUC: ', round(auc(roc3), digits = 2))) -->
-<!-- ``` -->
-
-<!-- predictive probabilities  -->
-<!-- ```{r} -->
-
-<!-- HC_df <- thesis_NHRVS |> -->
-<!--   dplyr::select( -->
-<!--     #outcome -->
-<!--     Ex_rec, -->
-<!--     #covaraiates -->
-<!--     Age,College,White_Race,Income_60k_plus,Combat_Veteran,TOTAL_TRAUMAS,BMI,   -->
-<!--     #HC -->
-<!--     Total_HC, -->
-<!--     #weights -->
-<!--     weight) -->
-<!--   # ) |> -->
-<!--   # mutate( -->
-<!--   #   Ex_rec = as.factor(ifelse(Ex_rec == "Insufficient", 0,1)) -->
-<!--   # ) -->
-<!-- HC_df <- na.omit(HC_df) -->
-<!-- library(caret) -->
-
-<!-- fit2 <- glm(relevel(Ex_rec,ref = "Sufficient")~ -->
-<!--              #Covariates -->
-<!--              Age + College + White_Race  + -->
-<!--              Income_60k_plus + Combat_Veteran +  -->
-<!--              TOTAL_TRAUMAS + BMI +  -->
-<!--              #number of health conditions -->
-<!--              Total_HC, -->
-<!--              # Data -->
-<!--              data =HC_df, -->
-<!--              # Specify weights -->
-<!--              family = "binomial") #weights = weight) -->
-
-<!-- OR <- round(exp(cbind(coef(fit2), confint(fit2))),2) -->
-
-<!-- OR_fig <-paste0(OR[8,1], " [",OR[8,2], ",",OR[8,2], "]") -->
-
-<!-- HC_df2$prob <- predict(fit2, NewData=HC_df ,type = "response") -->
-<!-- HC_df2<- cbind(HC_df, predict(fit2, newdata = HC_df, type = "response", -->
-<!--     se = TRUE)) -->
-
-<!-- HC_df2 <- HC_df2 |> -->
-<!--   mutate( -->
-<!--     LL = fit - (1.96 * (se.fit), -->
-<!--     UL = fit + (1.96 * se.fit) -->
-<!--   ) -->
-
-<!-- # just number of conditions -->
-<!-- ggplot(HC_df2, aes(x = Total_HC, y = fit)) +  -->
-<!--   #geom_ribbon(aes(ymin = LL, -->
-<!--     # ymax = UL), alpha = 0.2) +  -->
-<!--   geom_smooth(size = 1) + -->
-<!--   labs(x = '# of co-occuring health conditions', y = 'Predictive probability for insuficient activity', -->
-<!--        title = 'Predictive Probabilities\nExercise guidelines ~ # Health Conditions +  Covariates') + -->
-<!--   #annotate('text', x = 10, y = .6, label = paste0('OR: ', OR_fig)) + -->
-<!--   theme_classic() -->
-
-
-
-
-<!-- ``` -->
-
-
-
-<!-- ```{r} -->
-<!-- # Read in simulated data -->
-<!-- sim_dat <- read.csv('http://static.lib.virginia.edu/statlab/materials/data/roc_sim_dat.csv', header = T) -->
-
-<!-- # See a few rows -->
-<!-- sim_dat[c(1, 25, 75, 100), ] -->
-
-<!-- sim_dat -->
-
-<!-- # Use pROC calculate TPR/FPR across a range of classification thresholds -->
-<!-- sim_roc <- roc(response = sim_dat$actual_outcome, -->
-<!--                predictor = sim_dat$predicted_prob_of_Yes, -->
-<!--                levels = c('No', 'Yes')) -->
-<!-- # response: vector of actual outcomes -->
-<!-- # predictor: vector of probabilities, one for each observation -->
-<!-- # levels: response values to be taken as "No"/0/"Failure"/etc. and "Yes"/1/"Success"/etc., respectively -->
-
-<!-- # Plot ROC curve -->
-<!-- # - pROC::ggroc() prints the ROC curve using ggplot2; you can print the curve using base R graphics with pROC::plot.roc() -->
-<!-- # - legacy.axes = TRUE ensures that the x-axis is displayed as FPR from 0 to 1 as opposed to -->
-<!-- #     specificity (1-FPR) from 1 to 0 -->
-<!-- ggroc(sim_roc, legacy.axes = TRUE) + -->
-<!--   labs(x = 'False-positive rate', y = 'True-positive rate', title = 'Simulated ROC curve') -->
-
-
-
-
-
-
-
-
-<!-- roc(train.data$Ex_rec, -->
-<!--              predicted.classes) -->
-
-<!-- \ -->
-
-
-
-
-<!-- summary(test.data$Ex_rec) -->
-<!-- ``` -->
-
-
-
-<!-- ### Export Tables to CSV -->
-<!-- ```{r} -->
-<!-- write_csv(Ins_Mod, "~/Desktop/Coding/data/Ins_Mod.csv") -->
-<!-- write_csv(Ins_Act, "~/Desktop/Coding/data/Ins_Act.csv") -->
-<!-- write_csv(Act_Mod, "~/Desktop/Coding/data/Act_Mod.csv") -->
-<!-- ``` -->
-
-
-<!-- # Create Tables for Multinomial Logistic Regression Output  -->
-
-<!-- We have everything we need for our final table output! -->
-<!-- ```{r,message=FALSE} -->
-<!-- #1. Import tables -->
-<!--    r2_change <- read_csv("~/Desktop/Coding/data/R2change.csv") -->
-<!--    cov.SF8_OR_tab <- read.csv("~/Desktop/Coding/data/SF8.cov_OR_tab.csv") -->
-<!--    Ins_Mod <- read_csv("~/Desktop/Coding/data/Ins_Mod.csv") -->
-<!--    Ins_Act <- read_csv("~/Desktop/Coding/data/Ins_Act.csv") -->
-<!--    Act_Mod <- read_csv( "~/Desktop/Coding/data/Act_Mod.csv") -->
-<!-- ``` -->
-
-
-<!-- ```{r} -->
-<!-- #2. Create dataframes to be merged. -->
-<!--     OR_Table = data.frame( -->
-<!--       Ins_Act$variable, Ins_Act$ci, Ins_Mod$ci, Act_Mod$ci,Act_Mod$r2_change -->
-<!--       ) -->
-<!--     colnames(OR_Table) <- c("Variable","IvA_ODDS", -->
-<!--                           "IvM_ODDS", "AvM_ODDS", -->
-<!--                           "R2_Change") -->
-
-<!-- #3. Create a block 3 row -->
-<!--   Block_3 = cbind( -->
-<!--     Variable = "Block 3: Health Conditions R^2 range = 0.032 - 0.052", -->
-<!--     IvA_ODDS = NA, -->
-<!--     IvM_ODDS = NA, -->
-<!--     AvM_ODDS = NA, -->
-<!--     R2_Change = NA -->
-<!--   ) -->
-
-<!-- #4. pull out values from covariates table -->
-<!--   Cov_table = data.frame( -->
-<!--     Full_OR_tab$variable, -->
-<!--     Full_OR_tab$IvA_ODDS,  -->
-<!--     Full_OR_tab$IvM_ODDS, -->
-<!--     Full_OR_tab$AvM_ODDS -->
-<!--   ) -->
-<!--   Cov_table$R2_Change = NA -->
-<!--   colnames(Cov_table) <- c("Variable","IvA_ODDS", -->
-<!--                           "IvM_ODDS", "AvM_ODDS", -->
-<!--                           "R2_Change") -->
-
-<!-- #5. Merge all the data frames -->
-<!--   OR_Table <- rbind(Cov_table,Block_3,OR_Table) -->
-
-<!-- #6. update R2 change df and add it to OR tab -->
-<!--   r2_change = rbind(r2_change[1:6,],NA,r2_change[7:33,]) -->
-<!--   OR_Table <- cbind(OR_Table[,1:4],r2_change) -->
-
-<!-- #6. Rename columns for table  -->
-<!--   colnames(OR_Table) <- c("Variable","Insufficient vs Sufficient ORs", -->
-<!--                           "Insufficient vs Moderate ORs", "Active vs Moderate ORs", "R^2 Change") -->
-
-
-<!-- #7. View Table -->
-<!--     knitr::kable(OR_Table) %>% -->
-<!--           kable_styling(bootstrap_options = c("striped", "hover", "condensed")) -->
-
-<!-- #8 Export Table -->
-<!--     write_csv(OR_Table,"~/Desktop/Coding/data/Thesis_OR_Table.csv") -->
-
-<!-- ``` -->
-
-<!-- ```{r} -->
-
-<!-- ``` -->
-
-
-<!-- Multicolinearity Analysis -->
-<!-- ```{r} -->
-<!-- library(tidyverse) -->
-<!-- library(dplyr) -->
-<!-- library(ggplot) -->
-<!-- library(ggcorrplot) -->
-
-<!-- thesis_NHRVS$Hrt_dis -->
-<!-- ``` -->
-
-
-<!-- ```{r} -->
-<!-- #physical health conditions -->
-<!-- corr1 <- thesis_NHRVS |> -->
-<!--   dplyr::select(Ex_3cat,Any_Disability, Age, College , Income_60k_plus, YN_work , BMI , MCS -->
-<!--     ) -->
-
-<!-- model.matrix(~0+., data=corr1) %>%  -->
-<!--   cor(use="pairwise.complete.obs") %>%  -->
-<!--   ggcorrplot(show.diag=FALSE, type="lower", lab=TRUE, lab_size=2) -->
-
-<!-- # mental health conditions -->
-<!-- corr2 <- thesis_NHRVS |> -->
-<!--   dplyr::select(Ex_3cat,LT_MDD, Age, College , Income_60k_plus, YN_work , BMI , PCS -->
-<!--     ) -->
-
-<!-- model.matrix(~0+., data=corr2) %>%  -->
-<!--   cor(use="pairwise.complete.obs") %>%  -->
-<!--   ggcorrplot(show.diag=FALSE, type="lower", lab=TRUE, lab_size=2) -->
-
-<!-- ``` -->
+# Prep data / functions
+
+## {.tabset}
+
+### Create df for RIA analysis
+
+slect statistically significant variables from logistic regression analysis
+```{r df selection}
+mydata <- thesis_NHRVS |>
+    mutate(Obesity = ifelse(is.na(BMI), NA,
+      ifelse(BMI >=30,1,0))
+    ) |>
+  #Select all of the variables needed for the analysis
+  dplyr::select(
+    #DV
+       Ex_rec,
+    #Covariates
+       Age,College,
+       Income_60k_plus,
+    #Physical Health Conditions
+       Athsma, Diabetes, Obesity,
+    #Mental Health conditions
+      DUD_Current, GAD_Current, MDD_Current, 
+  )|>
+    # Convert all of the varaibles to numeric
+    mutate(
+      Ex_rec = as.numeric(Ex_rec),
+      Age = as.numeric(Age),
+      College = as.numeric(College),
+      Income_60k_plus = as.numeric(Income_60k_plus),
+      Obesity = as.numeric(Obesity),
+      Athsma = as.numeric(Athsma),
+      Diabetes = as.numeric(Diabetes),
+      DUD_Current = as.numeric(DUD_Current), 
+      GAD_Current = as.numeric(GAD_Current),
+      MDD_Current = as.numeric(MDD_Current), 
+      
+    )
+#filter out missing data
+mydata <- na.omit(mydata)
+```
+
+
+### Functions for bootstrapping
+```{r Functions}
+#### 1. logRegress -  LOGISTIC REGRESSION
+# manually calculate Logistic Regression and obtain epsilon (i.e., raw relative
+# R2o weight) and rescaled weights (i.e., epsilon / total R2o). The rescaled 
+# weights are the relative percent of the R2o for each predictor. the rescaled
+# weights add up to 100 as it is adding up to 100% of the variance explained.
+logRegress<-function(mydata){
+numVar<-NCOL(mydata)
+Variables<-names(mydata)[2:numVar]
+Y<-mydata[,1]
+data.preds<-mydata[,2:length(mydata[1,])]
+X<-scale(data.preds)
+
+str(X)
+
+X.svd<-svd(X)
+Q<-X.svd$v
+P<-X.svd$u
+Z<-P%*%t(Q)
+
+Z.stand<-scale(Z)
+
+#Obtaining Lambda from equation 7 from Johnson (2000) pg 8
+Lambda<-solve(t(Z.stand)%*%Z.stand)%*%t(Z.stand)%*%X
+
+logrfit<-glm(as.factor(Y$Ex_rec)~Z.stand,family=binomial)
+summary(logrfit)
+unstCoefs<-coef(logrfit)
+b<-unstCoefs[2:length(unstCoefs)]
+LpredY<-predict(logrfit,newdata=mydata,type="response")
+lYhat<-log(LpredY/(1-LpredY))#Creating logit-Y-hat
+stdlYhat<-sd(lYhat)#Getting stdev of logit-Y-hat
+getting.Rsq<-lm(LpredY~as.factor(Y$Ex_rec))#Getting R-sq
+Rsq<-summary(getting.Rsq)$r.squared
+beta<-b*((sqrt(Rsq))/stdlYhat)#Computing standardized logistic regression coefficients
+
+epsilon<-Lambda^2%*%beta^2
+R.sq<<-sum(epsilon)
+PropWeights<-(epsilon/R.sq)
+result <- data.frame(Variables, Raw.RelWeight=epsilon, Rescaled.RelWeight=PropWeights)
+return(result)
+}
+
+#### 2. logBootstrap - BOOTSTRAP FOR RAW WEIGHTS
+# This returns the bootstrapped Raw weights
+# this function also calculates the bootstrapped bias and standard error
+logBootstrap<-function(mydata, indices){
+mydata<-mydata[indices,]
+logWeights<-logRegress(mydata)
+return(logWeights$Raw.RelWeight)
+}
+
+#### 3. logBootstrap_adj - BOOTSTRAP FOR RELATIVE WEIGHTS
+# Same as funciton as above, but this function returns the boostrapped rescaled weights
+logBootstrap_adj<-function(mydata, indices){
+mydata<-mydata[indices,]
+logWeights<-logRegress(mydata)
+return(logWeights$Rescaled.RelWeight)
+}
+
+#### 4. logBootrand - BOOSTRAP FOR RANDOM VARAIBLE?
+# I'm not sure what this is used for. Comparing if a variable is better than the 
+# random variable? I can't get this function to work as it just tells me it has 
+# missing variables dispite not actually having missing variables
+logBootrand<-function(mydata, indices){
+mydata<-mydata[indices,]
+logRWeights<-logRegress(mydata)
+logReps<-logRWeights$Raw.RelWeight
+randWeight<-logReps[length(logReps)]
+randStat<-logReps[-(length(logReps))]-randWeight
+return(randStat)
+}
+
+#### 4. logBootrand_adj - BOOSTRAP FOR RANDOM VARAIBLE?
+# I'm not sure what this is used for. Comparing if a variable is better than the 
+# random variable? I can't get this function to work as it just tells me it has 
+# missing variables dispite not actually having missing variables
+logBootrand_adj<-function(mydata, indices){
+mydata<-mydata[indices,]
+logRWeights<-logRegress(mydata)
+logReps<-logRWeights$Rescaled.RelWeight
+randWeight<-logReps[length(logReps)]
+randStat<-logReps[-(length(logReps))]-randWeight
+return(randStat)
+}
+
+#### 5. mybootci -  EXTRACT THJE 95% CI'S 
+# Extracts the  95% BCa ci for a given variable (i.e., index)
+mybootci<-function(x){
+boot.ci(logBoot,conf=0.95, type="bca", index=x)
+}
+
+#### 6. runBoot - EXTRACT THE 95% CI'S FOR EACH VARIABLE
+# This function extracts the CI's for each given varaible in the bootstrap and 
+# returns a df called test2 which contains the CI's and some other stats.
+runBoot<-function(num){
+INDEX<-1:num
+test<-lapply(INDEX, FUN=mybootci)
+test
+test2<-t(sapply(test,'[[',i=4))
+return(test2)
+# CIresult<<-data.frame(Variables = coln, CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5])
+}
+
+#### 7. myRbootci - EXTRACT 95% CI W/RANDOM VARIABLE
+# HAvent been able to get this to work, I think its the same as above, but w/
+# a random variable?
+myRbootci<-function(x){
+boot.ci(logRBoot,conf=0.95,type="bca",index=x)
+}
+
+#### 8. runRBoot - EXTRACT THE 95% CI FOR EACH VARIABLE W/RANDOM
+# HAvent been able to get this to work, I think its the same as above, but w/
+# a random variable?
+runRBoot<-function(num){
+INDEX<-1:num
+test<-lapply(INDEX,FUN=myRbootci)
+test2<-t(sapply(test,'[[',i=4))
+return(test2)
+}
+```
+
+# Running the Relative Importance Analysis / Relative Weight Analysis
+
+## {.tabset}
+
+### Part 1 RIA/RWA
+The code below uses the functions above to caculate how important each variable 
+is to the varaince Phsyical Activity.
+```{r RIA}
+#1.1 Run logRegress function
+result <- logRegress(mydata)
+
+#1.2 Save results from logRegress function
+RW.Results<-result
+RSQ.o<-R.sq
+
+RW.Results <- result |>
+  #order the varaibles based upon the scaled weights
+  # arrange(-Rescaled.RelWeight) |>
+  #create percent varaibles
+  mutate(Rescaled.RelWeight.percent = round((Rescaled.RelWeight*100),2),
+         Raw.percent = round(Raw.RelWeight*100,4)
+  )
+
+# 1.3 display results of relative weight analysis
+knitr::kable(RW.Results) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+
+```
+
+
+
+### Part 2 Bootstrapping RIA/RWA
+
+Use bootstrapping functions to obtain 95% CI's for raw and rescaled weights.
+```{r Bootstrap RIA 1,results='hide',warning=FALSE,message=FALSE,error=FALSE}
+#2.1 Set seed for anlaysis
+set.seed(6624)
+
+#2.2 Boot function to bootstrap for raw weights CI
+logBoot <-boot(mydata, # Data
+              logBootstrap, # Statistic
+              10000) # R / number of times
+
+#2.3 Extract RIA/RWA statistic with bias and SE
+tidy_boot <- tidy(logBoot)
+  # You can obtain confidence intervals using the SE (+/-1.96*SE)
+  #CI.Results_tidy <- tidy(logBoot_B3,conf.int=TRUE)
+
+#2.4 assign the # of variables (columns) in mydata to a variable named numVar
+numVar = NCOL(mydata)
+
+#2.5 Run the boot.ci function to obtain the CI for the model
+logci<-boot.ci(logBoot,conf=0.95, type="bca")
+
+#2.6 Run runBoot function and extract 95% CI for the IV's in the model.
+test2 <- runBoot(length(mydata[,2:numVar]))
+```
+
+Create df and export to csv so you don't need to run stats every time
+```{r Bootstrap RIA 2,warning=FALSE,message=FALSE,error=FALSE}
+#2.7 Create df with 95% CI
+CI.Result<-data.frame(Variables=colnames(mydata[2:10]), CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5])
+
+#2.8 Save df as a csv so you can call it again in the future
+write_csv(CI.Result, "/Users/troyh/Downloads/CI.Result")
+write_csv(tidy_boot, "/Users/troyh/Downloads/tidy_boot")
+
+
+
+#2.9 Here is the output using tidy()
+knitr::kable(tidy_boot) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+
+#2.10 here is the output using boot.ci() abnd runBoot()
+knitr::kable(CI.Result) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+
+Run the same code again but for the rescaled weights
+```{r Bootstrap RIA 3,results='hide',warning=FALSE,message=FALSE,error=FALSE}
+#2.11 run bootstrap anlysis for rescaled CI so it can be used in figures
+logBoot_adj <-boot(mydata, # Data
+              logBootstrap_adj, # Statistic
+              10000) # R / number of times
+
+numVar = NCOL(mydata)
+mydata <- mydata
+logBoot <-logBoot_adj
+logci<-boot.ci(logBoot,conf=0.95, type="bca")
+numVar = length(mydata)
+test2 <- runBoot(length(mydata[,2:numVar]))
+tidy_boot_res <- tidy(logBoot_adj)
+CI.Result.res<<-data.frame(Variables=colnames(mydata[2:10]), CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5])
+write_csv(CI.Result.res, "/Users/troyh/Downloads/CI.Result.res")
+write_csv(tidy_boot_res, "/Users/troyh/Downloads/tidy_boot_res")
+```
+
+
+
+The code below is used for significance testing. If the output has a negative value that variable is **not statistically significant**. This code adds a random varaible into the data frame, and runs the analysis with this as a reference for other variables.
+```{r Random Boot function,results='hide',echo=FALSE,warning=FALSE,message=FALSE,error=FALSE}
+#Bootstrapped Confidence interval tests of Significance
+#Please be patient -- This can take a few minutes to run
+logRegress<-function(mydata){
+numVar<-NCOL(mydata)
+Variables<-names(mydata)[2:numVar]
+Y<-mydata[,1]
+data.preds<-mydata[,2:length(mydata[1,])]
+X<-scale(data.preds)
+
+str(X)
+
+X.svd<-svd(X)
+Q<-X.svd$v
+P<-X.svd$u
+Z<-P%*%t(Q)
+
+Z.stand<-scale(Z)
+
+#Obtaining Lambda from equation 7 from Johnson (2000) pg 8
+Lambda<-solve(t(Z.stand)%*%Z.stand)%*%t(Z.stand)%*%X 
+
+logrfit<-glm(as.factor(Y)~Z.stand,family=binomial)
+summary(logrfit)
+unstCoefs<-coef(logrfit)
+b<-unstCoefs[2:length(unstCoefs)]
+LpredY<-predict(logrfit,newdata=mydata,type="response")
+lYhat<-log(LpredY/(1-LpredY))#Creating logit-Y-hat
+stdlYhat<-sd(lYhat)#Getting stdev of logit-Y-hat
+getting.Rsq<-lm(LpredY~as.factor(Y))#Getting R-sq
+Rsq<-summary(getting.Rsq)$r.squared
+beta<-b*((sqrt(Rsq))/stdlYhat)#Computing standardized logistic regression coefficients
+
+epsilon<-Lambda^2%*%beta^2
+R.sq<<-sum(epsilon)
+PropWeights<-(epsilon/R.sq)
+result <- data.frame(Variables, Raw.RelWeight=epsilon, Rescaled.RelWeight=PropWeights)
+return(result)
+}
+```
+
+
+```{r Random Boot 1,results='hide',warning=FALSE,message=FALSE,error=FALSE}
+#2.12 set seed for reproduceability
+set.seed(6624)
+#2.13 assign random variables with a mean of 0 and an SD of 1
+randVar<-rnorm(length(mydata$Ex_rec), mean = 0, sd = 1)
+#2.14 bind it to df
+randData<-cbind(mydata,randVar)
+#2.15 run random varaible bootstrap RIA
+numVar = ncol(randData)
+logRBoot<-boot(randData,logBootrand, 10000)
+logRci<-boot.ci(logRBoot,conf=0.95, type="bca")
+test2 <- runRBoot(length(randData[,2:(numVar-1)]))
+#2.16 save output
+CI.Result.rand <<-data.frame(Variables=colnames(mydata[2:10]), CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5])
+
+#2.17 view results
+knitr::kable(CI.Result.rand) %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+
+
+Negative lower bound CI's indicate non significance. You can see that Athsma, DUD current, GAD current, and MDD current have **a negative lower bound CI**, resulting in these variables _not_ being significant. 
+
+### Part 3 join results into on df and create variables for Figures
+
+```{r rename df}
+# CI.Result <- read.csv("/Users/troyh/Downloads/CI.Result")
+# CI.Result.res <- read.csv("/Users/troyh/Downloads/CI.Result.res")
+# tidy_boot_res <- read_csv("/Users/troyh/Downloads/tidy_boot_res")
+# tidy_boot <- read_csv("/Users/troyh/Downloads/tidy_boot")
+
+#BCa Confidence Intervals around the raw weights
+
+# rename varaibles per analysis as Raw or Rescale
+colnames(CI.Result) <- paste0(colnames(CI.Result),"_Raw")
+colnames(CI.Result.res) <- paste0(colnames(CI.Result.res),"_Rescale")
+```
+
+
+```{r data wrangle}
+#left join bootstraped results to RW.Results df
+RW.Results <- left_join(RW.Results,CI.Result, by = join_by(Variables == Variables_Raw))
+RW.Results <- left_join(RW.Results,CI.Result.res, by = join_by(Variables == Variables_Rescale))
+
+#left join tidy bootstrap dataset
+RW.Results <- left_join(RW.Results,tidy_boot_res, by = join_by(Rescaled.RelWeight == statistic))
+
+#create new df with CIs and values as %
+wt_df <- RW.Results |>
+  mutate(
+  # make raw values that are rounded and %'s
+    raw.CI = paste0("[", round(CI.Lower.Bound_Raw*100,2), ", ", 
+                    round(CI.Upper.Bound_Raw*100,2), "]"),
+    raw.CI.low = round(CI.Lower.Bound_Raw*100,2),
+    raw.CI.high = round(CI.Upper.Bound_Raw*100,2),
+  # make rescale values that are rounded and %'s 
+    res.CI = paste0("[", round(CI.Lower.Bound_Rescale*100,2), ", ", 
+                    round(CI.Upper.Bound_Rescale*100,2), "]"),
+    res.CI.low = round(CI.Lower.Bound_Rescale*100,2),
+    res.CI.high = round(CI.Upper.Bound_Rescale*100,2),
+  #make a variable that will be used as an order for figures
+    order = NA,
+  #make variabels that can be used for ggtext
+    Raw.wt.text = round(Raw.percent,2),
+    Res.wt.text = round(Rescaled.RelWeight.percent,2),
+  #manually calculate CI's based upon SE from bootstrapped.
+    res.CI.low.man.stat = (Rescaled.RelWeight - (1.96*std.error)),
+    res.CI.high.man.stat = (Rescaled.RelWeight + (1.96*std.error)),
+    res.CI.man = paste0("[", round(res.CI.low.man.stat*100,2), ", ", 
+                    round(res.CI.high.man.stat*100,2), "]"),
+    res.CI.low.man = round(res.CI.low.man.stat*100,2),
+    res.CI.high.man = round(res.CI.high.man.stat*100,2)
+  )
+
+#assign variables and put them at the top
+  wt_df[10,]   = NA  
+  wt_df[10,1]  = "Variable"
+  wt_df[10,12] = "95% CI"
+  wt_df[10,15] = "95% CI"
+  wt_df[10,19] = "R2o (%)"  
+  wt_df[10,20] = "Rescaled (%)" 
+  wt_df[10,23] = "95% CI"
+  wt_df <- arrange(wt_df,-Rescaled.RelWeight)
+  wt_df$order  = c(seq(2,10,1),1)
+  wt_df <- arrange(wt_df,order)
+  
+```
+
+# Visualize analysis with barplots
+
+## {.tabset}
+
+### Barplot w/ manual CI's
+
+I used patchwork to combine `ggtext()` and the `geom_bar()` figures. The figure 
+below is manually calculated 95% CI's for the rescaled weights using `tidy()` to extract the bootstrapped standard errors.
+
+```{r fig 1,fig.width=8,warning=FALSE,message=FALSE}
+wt_plot_man <- wt_df |>
+  ggplot(aes(x=reorder(Variables,-order),y=Rescaled.RelWeight.percent)) +
+  geom_bar(stat = "identity", color = "Black", width = .75, fill = "#91c3e6" )+
+  geom_errorbar(aes(ymin=res.CI.low.man, ymax=res.CI.high.man,width =.3, show.legend = FALSE)) +
+  labs(
+    # title = "     Relative Weight (%) Of Predictors On Physical Activity",
+    subtitle ="Relative Weight (%) Of Predictors On Physical Activity" 
+      #"      RIA with 10000 bootstrapped confidence intervals"
+  ) +
+  theme_classic() +
+  xlab('Variable')+
+  ylab('Weight (%) of variance (R2o) in physical activity')+
+  ylim(-3,50)+
+  # geom_text(aes(label = wt_text), vjust =.5, hjust = -.1, color = "black")+
+  coord_flip()  +
+    theme(axis.line.y = element_blank(),
+        axis.ticks.y= element_blank(),
+        axis.text.y= element_blank(),
+        axis.title.y= element_blank())
+
+wt_text_man <- 
+  wt_df |>
+  ggplot(aes(y = reorder(Variables, -order))) +
+  geom_text(aes(x = 0, label = Variables), hjust = 0, 
+        fontface = ifelse(wt_df$Variables == "Variable", "bold","plain")) +
+  geom_text(aes(x = 1.1, label = Res.wt.text),
+        hjust = 0,
+        fontface = ifelse(wt_df$Res.wt.text == "Rescaled (%)", "bold","plain")) +
+  geom_text(aes(x = 2, label = res.CI.man),
+        hjust = 0,
+        fontface = ifelse(wt_df$res.CI.man == "95% CI", "bold","plain")) +
+  theme_void() +     
+  coord_cartesian(ylim = c(1,length(wt_df$Variables)), xlim = c(0, 4))
+library("patchwork")
+layout <- c(
+  patchwork::area(t = 0, l = 0, b = 30, r = 30),
+  patchwork::area(t = 0, l = 22, b = 30, r = 40)
+)
+```
+
+
+```{r fig 2,fig.width=8}
+wt_text_man + wt_plot_man + plot_layout(design = layout)
+```
+
+
+
+
+### Barplot w/ Robbs Code
+
+This figure is the rescaled weights Barplot using my `mybootci()` and `runBoot()` to obtain the 95% CI. I can't figure out why the 95% CI is skewed.
+
+```{r,fig.width=8,warning=FALSE,include=FALSE}
+wt_plot <- 
+  wt_df |>
+  arrange(wt_df,order) |>
+  ggplot(aes(x=stats::reorder(Variables,-order),y=Rescaled.RelWeight.percent)) +
+  geom_bar(stat = "identity", color = "Black", width = .75, fill = "#91c3e6" )+
+  geom_errorbar(aes(ymin=res.CI.low, ymax=res.CI.high,width =.3, show.legend = FALSE)) +
+  labs(
+    # title = "     Relative Weight (%) Of Predictors On Physical Activity",
+    subtitle ="Relative Weight (%) Of Predictors On Physical Activity" 
+      #"      RIA with 10000 bootstrapped confidence intervals"
+  ) +
+  theme_classic() +
+  xlab('Variable')+
+  ylab('Weight (%) of variance (R2o) in physical activity')+
+  ylim(0,50)+
+  # geom_text(aes(label = wt_text), vjust =.5, hjust = -.1, color = "black")+
+  coord_flip()  +
+    theme(axis.line.y = element_blank(),
+        axis.ticks.y= element_blank(),
+        axis.text.y= element_blank(),
+        axis.title.y= element_blank())
+
+wt_text <- 
+  wt_df |>
+  ggplot(aes(y = reorder(Variables, -order))) +
+  geom_text(aes(x = 0, label = Variables), hjust = 0, 
+        fontface = ifelse(wt_df$Variables == "Variable", "bold","plain")) +
+  geom_text(aes(x = 1.1, label = Res.wt.text),
+        hjust = 0,
+        fontface = ifelse(wt_df$Res.wt.text == "Rescaled (%)", "bold","plain")) +
+  geom_text(aes(x = 2, label = res.CI),
+        hjust = 0,
+        fontface = ifelse(wt_df$res.CI == "95% CI", "bold","plain")) +
+  theme_void() +     
+  coord_cartesian(ylim = c(1,length(wt_df$Variables)), xlim = c(0, 4))
+
+library("patchwork")
+
+layout <- c(
+  patchwork::area(t = 0, l = 0, b = 30, r = 30),
+  patchwork::area(t = 0, l = 22, b = 30, r = 40)
+)
+```
+
+
+```{r,fig.width=8,warning=FALSE}
+wt_text + wt_plot + plot_layout(design = layout)
+```
+
+## Interactions of health conditions on physical activity recomendations
+```{r}
+# install.packages("bruceR")
+library(bruceR)
+# assign a vector of covariates to be used in analysis
+covs = c("White_Race",
+  "Income_60k_plus","College",
+  "Combat_Veteran", "TOTAL_TRAUMAS")
+
+##### AGE -> EX
+
+#Age*Obesity
+PROCESS(thesis_NHRVS, # Data
+  x="Age",  # Health conditoin
+  mods = "BMI",  # Moderator
+  y="MET_min", # outcome variable
+  covs = c("White_Race","Income_60k_plus","College","Combat_Veteran", "TOTAL_TRAUMAS")) # covariates
+
+#Age*College
+PROCESS(thesis_NHRVS,
+  x="Age", 
+  mods = "College",
+  y="MET_min",
+  covs = c("White_Race","Combat_Veteran", "TOTAL_TRAUMAS"))
+
+  #This was already done above, but for referene
+DOCS_mod = glm(MET_min~College*Age+White_Race+Combat_Veteran+TOTAL_TRAUMAS, data=thesis_NHRVS)
+
+#Age*Diabetes
+PROCESS(thesis_NHRVS,
+  x="Age", 
+  mods = "Diabetes",
+  y="MET_min",
+  covs = c("White_Race","Income_60k_plus","College","Combat_Veteran", "TOTAL_TRAUMAS"))
+
+##### diabetes -> EX
+
+#Diabetes*College
+PROCESS(thesis_NHRVS,
+  x="Diabetes", 
+  mods = "College",
+  y="MET_min",
+  covs = c("White_Race","Combat_Veteran", "TOTAL_TRAUMAS"))
+
+##### BMI -> EX
+#BMI*College
+PROCESS(thesis_NHRVS,
+  x="BMI", 
+  mods = "College",
+  y="MET_min",
+  covs = c("White_Race","Combat_Veteran", "TOTAL_TRAUMAS"))
+
+#BMI*College
+PROCESS(thesis_NHRVS,
+  x="BMI", 
+  mods = "Diabetes",
+  y="MET_min",
+  covs = c("White_Race","Combat_Veteran", "TOTAL_TRAUMAS"))
+
+```
+
+https://www.appsilon.com/post/r-logistic-regression
+ROC. vs AUC
+```{r}
+library('pROC')
+Reg_df <- thesis_NHRVS |>
+  dplyr::select(
+    Ex_rec,
+             #Covariates
+             Age , College , White_Race  ,
+             Income_60k_plus , Combat_Veteran ,
+             TOTAL_TRAUMAS , BMI ,
+             #Physical Health Conditions
+             Athsma , Chron_pain , Diabetes, Hrt_atk ,
+             Hrt_dis , High_chol , High_bld_press , Osteoporosis , Stroke ,
+             #Mental Health conditions
+             AUD_Current , DUD_Current , MDD_Current , PTSD_Current , GAD_Current,
+             # Data
+             weight)
+Reg_df <-na.omit(Reg_df)
+
+fit1<-glm(Ex_rec~
+             #Covariates
+             Age + College + White_Race  +
+             Income_60k_plus + Combat_Veteran +
+             TOTAL_TRAUMAS + BMI +
+             #Physical Health Conditions
+             Athsma + Chron_pain + Diabetes+ Hrt_atk +
+             Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke +
+             #Mental Health conditions
+             AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current,
+             # Data
+             data =Reg_df,
+             # Specify type of regression
+             family="binomial",weights = weight)
+
+
+# just number of conditions
+probabilities <-  predict(fit1, NewData=Reg_df ,type = "response")
+predicted.classes <- ifelse(probabilities > 0.5, 1,0)
+
+#confusion matrix
+# table(HC_df$Ex_rec, predicted.classes)
+#roc
+roc1 <- roc(response = Reg_df$Ex_rec,
+               predictor = probabilities)
+
+ggroc(roc1, legacy.axes = TRUE) +
+  labs(x = 'False-positive rate', y = 'True-positive rate',
+       title = 'ROC curve\nEx_rec ~ # Health Conditions + Covariates') +
+  annotate('text', x = .5, y = .5, label = paste0('AUC: ', round(auc(roc1), digits = 2)))
+```
+
+
+
+predictive probabilities
+```{r}
+
+HC_df <- thesis_NHRVS |>
+  dplyr::select(
+    #outcome
+    Ex_rec,
+    #covaraiates
+    Age,College,White_Race,Income_60k_plus,Combat_Veteran,TOTAL_TRAUMAS,BMI,
+    #HC
+    edu,
+    #weights
+    weight)
+  # ) |>
+  # mutate(
+  #   Ex_rec = as.factor(ifelse(Ex_rec == "Insufficient", 0,1))
+  # )
+HC_df <- na.omit(HC_df)
+library(caret)
+
+fit2 <- glm(relevel(Ex_rec,ref = "Sufficient")~
+             #Covariates
+             Age + College + White_Race  +
+             Income_60k_plus + Combat_Veteran +
+             TOTAL_TRAUMAS + BMI +
+             #number of health conditions
+             edu,
+             # Data
+             data =HC_df,
+             # Specify weights
+             family = "binomial") #weights = weight)
+
+
+HC_df2<- cbind(HC_df, predict(fit2, newdata = HC_df, type = "response",
+    se = TRUE))
+
+HC_df2 <- HC_df2 |>
+  mutate(
+    LL = fit - (1.96 * se.fit),
+    UL = fit + (1.96 * se.fit)
+  )
+
+# just number of conditions
+ggplot(HC_df2, aes(x = edu, y = fit)) +
+  geom_smooth(size = 1) +
+  labs(x = 'Education Category', y = 'Predictive probability of insuficient activity',
+       title = 'Predictive Probabilities\nExercise guidelines ~ # Education Level +  Covariates') +
+  geom_vline(xintercept = 8 ,linetype="dashed",alpha = .50) + 
+    geom_vline(xintercept = 12 ,linetype="dashed",alpha = .50) +
+      geom_vline(xintercept = 10 ,linetype="dashed",alpha = .50) +
+  annotate('text', x = 7, y = 1, label = "< HC") +
+  annotate('text', x = 9, y = 1, label = "HC") +
+  annotate('text', x = 11,y= 1, label = "Some\nCollege") +
+  annotate('text', x = 13,y = 1, label = "College\nDegree") +
+  theme_classic()
+
+```
 
