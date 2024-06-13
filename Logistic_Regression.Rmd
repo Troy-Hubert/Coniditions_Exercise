@@ -22,7 +22,13 @@ The following code will show you how I created functions to run my multinomial r
 
 --- 
 ```{r setup, include=FALSE}
-# Thesis Preliminary Analyses
+# Setup
+#libraries
+
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse, dplyr, haven,kableExtra,MASS,nnet,performance,fuzzySim, 
+               boot, broom,aod,caret)
+
   #data stuff
 library(tidyverse)
 library(dplyr)
@@ -30,14 +36,32 @@ library(dplyr)
 library(haven)
   #EDA stuff
 library(kableExtra)
+library(MASS)
+library(nnet)
+library(performance)
+library(fuzzySim) #FDR corrections
+library(broom) #for tidy models
+  library(aod) # Wald test
+library(boot) #bootstrapping
+#library(caret) #weight analysis???
 options(knitr.table.format = "html") 
 
 ## Prepare Data For Analysis 
 
 #### Import & Select data
+path <- "/Users/troyh/OneDrive/Documents/R/Data/NHRVS_2019_2020_FINAL_weighted.sav"
+
+
+
+  ifelse(Sys.info()[[1]] == "Windows","/Users/troyh/OneDrive/Documents/R/Data/NHRVS_2019_2020_FINAL_weighted.sav",
+       ifelse(Sys.info()[[1]] == "Darwin", "~/Desktop/Adams_lab/SPSS_stuff/NHRVS_2019_2020_FINAL_weighted.sav", "¿¿Donde Estoy??"
+       ))
 
 ### Import dataset 
-NHRVS_2019 <- read_sav("~/Desktop/Adams_lab/SPSS_stuff/NHRVS_2019_2020_FINAL_weighted.sav")
+NHRVS_2019 <- read_sav(path)
+
+
+
 
 ### Select and rename Variables
 thesis_NHRVS <- dplyr::select(NHRVS_2019,
@@ -241,10 +265,7 @@ thesis_NHRVS <- thesis_NHRVS %>%
   filter(!is.na(GAD_Current)) 
 #$View(thesis_NHRVS)
 thesis_NHRVS
-library(MASS)
-library(nnet)
-library(performance)
-library(fuzzySim) #FDR corrections
+
 ```
 ```{r}
 # str(NHRVS_2019$Race_4Cat)
@@ -324,8 +345,8 @@ This first block of the stepwise regression will do the same thing as we did for
 
 ### Part 1 Create values for table
 #1. Run the models
-library(broom) #for tidy models
-library(fuzzySim) ## For FDR adjusted p values
+
+
 Cov_Reg<-glm(Ex_rec~ + Age + College + White_Race  + Income_60k_plus + Combat_Veteran + 
                            TOTAL_TRAUMAS + BMI, data= thesis_NHRVS,family="binomial") 
   
@@ -352,7 +373,7 @@ Cov_Reg_sum <- tidy(Cov_Reg)
   R2_Cov_Reg <- performance::r2(Cov_Reg)
 
 #wald
-  library(aod) # Wald test
+
   cov_wald<- wald.test(b = coef(Cov_Reg),Sigma = vcov(Cov_Reg),Terms= 2:7)
   cov_wald$result$chi2[1]
   wald <- wald.test(b = coef(Cov_Reg),Sigma = vcov(Cov_Reg),Terms=2)$result$chi2[1]
@@ -405,7 +426,7 @@ cov_OR_tab$p = ifelse(as.numeric(cov_OR_df$p) < 0.001, "< 0.001",
   cov_OR_tab <- rbind(R2TAB, cov_OR_tab)
 cov_OR_tab
 #4. Export
-  write_csv(cov_OR_tab,"~/Desktop/Coding/data/EX_C_cov_OR_tab.csv")
+  # write_csv(cov_OR_tab,"~/Desktop/Coding/data/EX_C_cov_OR_tab.csv")
 ```
 ```{r}
   knitr::kable(cov_OR_tab) %>%
@@ -564,7 +585,7 @@ Conditions_X_use
 For fun, Lets run some regressions with the output to see if the covariates interact with these conditions.
 ```{r}
 # Multivariate Logistic Multinomial Regression Function
-library(broom)
+
 Condition_eval_Reg<-function(Data,condition,string){
 
 #1. run model 1
@@ -786,8 +807,8 @@ PHC_Reg_tab$p = ifelse(as.numeric(PHC_Reg_df$p) < 0.001, "< 0.001",
   Full_OR_tab <- rbind(cov_OR_tab,PHC_Reg_tab)
 
 #4. Export
-  write_csv(PHC_Reg_tab,"~/Desktop/Coding/data/PHC_Reg_tab.csv")
-  write_csv(Full_OR_tab, "~/Desktop/Coding/data/EX_Full_OR_tab.csv")
+  # write_csv(PHC_Reg_tab,"~/Desktop/Coding/data/PHC_Reg_tab.csv")
+  # write_csv(Full_OR_tab, "~/Desktop/Coding/data/EX_Full_OR_tab.csv")
   
   PHC_Reg_tab
 
@@ -799,7 +820,6 @@ PHC_Reg_tab$p = ifelse(as.numeric(PHC_Reg_df$p) < 0.001, "< 0.001",
 
 block 3 - mental health conditions
 ```{r}
-library(broom)
 MHC_Reg<-glm(Ex_rec~
              #Covariates
              Age + College + White_Race  +
@@ -893,8 +913,8 @@ MHC_Reg_tab$p = ifelse(as.numeric(MHC_Reg_df$p) < 0.001, "< 0.001",
   Full_OR_tab <- rbind(Full_OR_tab,MHC_Reg_tab)
 
 #4. Export
-  write_csv(MHC_Reg_tab,"~/Desktop/Coding/data/MHC_Reg_tab.csv")
-  write_csv(Full_OR_tab, "~/Desktop/Coding/data/EX_Full_OR_tab.csv")
+  # write_csv(MHC_Reg_tab,"~/Desktop/Coding/data/MHC_Reg_tab.csv")
+  # write_csv(Full_OR_tab, "~/Desktop/Coding/data/EX_Full_OR_tab.csv")
   
   MHC_Reg_tab
   Full_OR_tab
@@ -1035,7 +1055,7 @@ return(randStat)
 
 #bootstrapping
 #install.packages("boot")
-library(boot)
+
 
 mybootci<-function(x){
 boot.ci(logBoot,conf=0.95, type="bca", index=x)
@@ -1081,7 +1101,7 @@ RW.Results <- result |>
   )
 RW.Results
 
-write_csv(RW.Results,"~/Downloads/RW.Results")
+# write_csv(RW.Results,"~/Downloads/RW.Results")
 ```
 
 Block 1
@@ -1218,7 +1238,6 @@ colnames(CI.Results_B2) <- paste0(colnames(CI.Results_B2),"_CI")
 
 
 ```{r, results='hide'}
-library(broom)
 
 mydata_B3 <- thesis_NHRVS |>
   #Select all of the variables needed for the analysis
@@ -1280,17 +1299,19 @@ mydata_B3 <- na.omit(mydata_B3)
 # logWeights<-logRegress(mydata)
 # return(logWeights$Raw.RelWeight)
 # }
+
 #2.3 Set seed
 set.seed(123456)
 
 #2.4 run boot function
-logBoot_B3<-boot(mydata_B3, # Data
+logBoot_B3 <-boot(mydata_B3, # Data
               logBootstrap, # Statistic
-              5000) # R / number of times
- 
+              10000) # R / number of times
+
+write_csv(logBoot_B3,"/Users/troyh/Downloads/logBoot_B3")
 
 #2.5 confidence interval for bootstraps
-logci_B3<-boot.ci(logBoot,conf=0.95, type="bca")
+logci_B3<-boot.ci(logBoot_B3,conf=0.95, type="bca")
 
 boot.ci(logBoot_B3, type="bca",index = 1)
 
@@ -1299,7 +1320,8 @@ numVar<-NCOL(mydata_B3)
 
 CI.Result_B3s<- tidy(logBoot_B3,conf.int=TRUE,conf.method="perc") 
 CI.Results_B3
-write_csv(CI.Results_B3, "~/Downloads/CI.Results_B3")
+write_csv(CI.Results_B3, "/Users/troyh/Downloads/CI.Results_B3")
+
 # runBoot(length(mydata[,2:numVar]))
 
 
@@ -1321,23 +1343,23 @@ boot.ci(logBoot_B3, type="bca",index = 1)
 # runRBoot(length(randData[,2:(numVar-1)]))
 # CI.Significance<-CIresult
 # rand_CI
-
-#Rsq.O - logistic analog to Rsq
-RSQ.o_B3
-
-#The Raw and Rescaled Weights
-RW.Results_B3
-
-sum(RW.Results$Raw.RelWeight)
-
-#BCa Confidence Intervals around the raw weights
-CI.Results_B3
-colnames(CI.Results_B3) <- paste0(colnames(CI.Results_B3),"_CI")
-
-#BCa Confidence Interval Tests of significance
-rand_CI_B3
-colnames(rand_CI_B3) <- paste0(colnames(rand_CI_B3),"_CI_R")
-#If Zero is not included, Weight is Significant
+# 
+# #Rsq.O - logistic analog to Rsq
+# RSQ.o_B3
+# 
+# #The Raw and Rescaled Weights
+# RW.Results_B3
+# 
+# sum(RW.Results$Raw.RelWeight)
+# 
+# #BCa Confidence Intervals around the raw weights
+# CI.Results_B3
+# colnames(CI.Results_B3) <- paste0(colnames(CI.Results_B3),"_CI")
+# 
+# #BCa Confidence Interval Tests of significance
+# rand_CI_B3
+# colnames(rand_CI_B3) <- paste0(colnames(rand_CI_B3),"_CI_R")
+# #If Zero is not included, Weight is Significant
 ```
 
 
