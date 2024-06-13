@@ -262,59 +262,17 @@ thesis_NHRVS <- thesis_NHRVS %>%
   filter(!is.na(PTSD_Current)) %>%
   filter(!is.na(AUD_Current)) %>%
   filter(!is.na(DUD_Current)) %>%
-  filter(!is.na(GAD_Current)) 
+  filter(!is.na(GAD_Current)) |>
+  mutate(Obesity = ifelse(is.na(BMI), NA,
+      ifelse(BMI >=30,1,0)),
+      Obesity = as.factor(Obesity)
+           ) 
+  
 #$View(thesis_NHRVS)
-thesis_NHRVS
+
 
 ```
-```{r}
-# str(NHRVS_2019$Race_4Cat)
-# tab<-table(NHRVS_2019$Race_4Cat)
-# tab<- (tab[1:4]/length(NHRVS_2019$Race_4Cat))*100
-# tab
 
-str(thesis_NHRVS$Ex_rec)
-```
-
-
-
-# Create Data frames
-This first set of code is used to create the dataframes needed for our analysis. 
-Once the data frame is made, then we can use the function below to add values to 
-the data frames.
-```{r}
-variable    = 0
-  statistic = 0
-  estimate  = 0
-  conf.low  = 0
-  conf.high = 0
-  ci        = 0
-  p.value   = 0
-  r2_change = 0
-#   
-# # Multinomial 
-# 
-#   Ins_Mod_Uni <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))[1,]
-#   Ins_Act_Uni <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))[1,]
-#   Act_Mod_Uni <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))[1,]
-#   
-# # Block 1 Covars - SF8
-# 
-#   Ins_Mod_Cov <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))[1,]
-#   Ins_Act_Cov <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))[1,]
-#   Act_Mod_Cov <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))[1,]
-#   
-# # Block 2 Covars + SF8
-#   
-#   Ins_Mod_SF8 <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))[1,]
-#   Ins_Act_SF8 <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))[1,]
-#   Act_Mod_SF8 <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))[1,]
-# 
-# # Block 3 Full Model
-#   Ins_Mod  <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))[1,]
-#   Ins_Act  <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))[1,]
-#   Act_Mod  <- data.frame(cbind(variable,statistic,estimate,conf.low,conf.high,ci,p.value,r2_change))[1,]
-```
 
 # Preliminary Regression: Univariate Regression function
 
@@ -337,18 +295,11 @@ That's a mouthful! For the following section we will be running code for the ful
 ### Block 1: Covariates
 This first block of the stepwise regression will do the same thing as we did for the univariate analysis, being that this was not replicated we did not make a function for it.
 
-
-
 ```{r,warning=FALSE,message=FALSE,results='hide'}
-######### PICK UP HERE ###########
-# age, gender, race, educational attainment, relationship status, and income), PCS scores, number of lifetime potentially traumatic events, and combat veteran status
-
 ### Part 1 Create values for table
 #1. Run the models
-
-
 Cov_Reg<-glm(Ex_rec~ + Age + College + White_Race  + Income_60k_plus + Combat_Veteran + 
-                           TOTAL_TRAUMAS + BMI, data= thesis_NHRVS,family="binomial") 
+                           TOTAL_TRAUMAS, data= thesis_NHRVS,family="binomial") 
   
 
 Cov_Reg_sum <- summary(Cov_Reg)
@@ -408,13 +359,14 @@ cov_OR_tab$Beta = round(as.numeric(cov_OR_tab$Beta),2)
 cov_OR_tab$Wald = round(as.numeric(cov_OR_tab$Wald),2)
 cov_OR_tab$OR = round(as.numeric(cov_OR_tab$OR),2)
 cov_OR_tab$p = ifelse(as.numeric(cov_OR_df$p) < 0.001, "< 0.001",
-  round(as.numeric(cov_OR_df$p),2))
+  round(as.numeric(cov_OR_df$p),3))
 
 #2. create the row for the R2
   paste("Block 1 R^2 =", round((R2_Cov_Reg[[1]]*100),3),"%")
   variable = c(
-    paste0("Block 1 X^2=", round(cov_wald$result$chi2[1],2),",p<0.001"),
-    paste0("Block 1 R^2=", round((R2_Cov_Reg[[1]]),3))  
+    "Block 1 - Covariates",
+    paste0("X^2=", round(cov_wald$result$chi2[1],2),",p<0.001"),
+    paste0("R^2=", round((R2_Cov_Reg[[1]]),3))  
   )
 
 
@@ -488,6 +440,8 @@ Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$Migrane,"Migran
 Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$MS,"MS"))
 #15. Osteoporosis
 Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$Osteoporosis,"Osteoporosis"))
+#15. Obesiety
+Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$Obesity,"Obesity"))
 #16. Rheumatoid Arthritis
 Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$Rhum_arth,"RA"))
 #17. Stroke
@@ -582,130 +536,132 @@ Conditions_X_use
 ```
 
 
-For fun, Lets run some regressions with the output to see if the covariates interact with these conditions.
+For fun, Lets run some regressions with each condition seperately
 ```{r}
 # Multivariate Logistic Multinomial Regression Function
-
-Condition_eval_Reg<-function(Data,condition,string){
-
-#1. run model 1
-  df <- glm(Ex_rec  ~ condition + Age + College + White_Race  + Income_60k_plus + Combat_Veteran + 
-                           TOTAL_TRAUMAS + BMI, data = Data,family="binomial")
-  
-#2. summary of the model
-  df_summary <- summary(df)
-  df_sum <- tidy(df) 
-#4 Coefficients 
-  coefs_df <- abs(coef(df))
-#5. Odds ratio
-  OR_df <- exp(coef(df))
-#6. OR 95% CI
-  CI_df <- data.frame(round(exp(confint(df)),2))
-#7. P value function
-  p_val1<- cbind(df_sum$term ,df_sum$p.value)
-  adj.p <- FDR(pvalues = p_val1)
-  ADJ.p.values <- data.frame(rbind(adj.p$exclude, adj.p$select))
-  ADJ.p.values
-
-#### Part 2. Make the table and export   
-  
-#1. Create a data frame
-tab_df <-  data.frame(cbind(
-  variable = df_sum$term[2:length(df_sum$term)],
-  Beta = coefs_df[2:length(df_sum$term)],
-  Wald = round(wald,2),
-  OR = OR_df[2:length(OR_df)],
-  CI = paste0("[",CI_df[2:length(OR_df),1], ",", CI_df[2:length(OR_df),2], "]"),
-  p = p_val1[2:length(length(p_val1[,2])),2]
-))
-#2. left join adjusted p values
-#tab_df  <- left_join(tab_df, ADJ.p.values,by = join_by(p == p.value))
-
-#3. 
-tab_tab <- data.frame(cbind(
-  variable = tab_df$variable,
-  Beta = tab_df$Beta,
-  Wald = tab_df$Wald,
-  OR = tab_df$OR,
-  CI = tab_df$CI,
-  p = tab_df$p
-))
-#round the numbers
-tab_tab$Beta = round(as.numeric(tab_tab$Beta),2)
-tab_tab$Wald = round(as.numeric(tab_tab$Wald),2)
-tab_tab$OR = round(as.numeric(tab_tab$OR),2)
-tab_tab$p = tab_tab$p = round(as.numeric(tab_tab$p),4)
-
-tab_tab[1,1] = string
-
-output <- tab_tab[1,]
-  
-  return(output)
-}
+# 
+# Condition_eval_Reg<-function(Data,condition,string){
+# 
+# #1. run model 1
+#   df <- glm(Ex_rec  ~ condition + Age + College + White_Race  + Income_60k_plus + Combat_Veteran + 
+#                            TOTAL_TRAUMAS, data = Data,family="binomial")
+#   
+# #2. summary of the model
+#   df_summary <- summary(df)
+#   df_sum <- tidy(df) 
+# #4 Coefficients 
+#   coefs_df <- abs(coef(df))
+# #5. Odds ratio
+#   OR_df <- exp(coef(df))
+# #6. OR 95% CI
+#   CI_df <- data.frame(round(exp(confint(df)),2))
+# #7. P value function
+#   p_val1<- cbind(df_sum$term ,df_sum$p.value)
+#   adj.p <- FDR(pvalues = p_val1)
+#   ADJ.p.values <- data.frame(rbind(adj.p$exclude, adj.p$select))
+#   ADJ.p.values
+# 
+# #### Part 2. Make the table and export   
+#   
+# #1. Create a data frame
+# tab_df <-  data.frame(cbind(
+#   variable = df_sum$term[2:length(df_sum$term)],
+#   Beta = coefs_df[2:length(df_sum$term)],
+#   Wald = round(wald,2),
+#   OR = OR_df[2:length(OR_df)],
+#   CI = paste0("[",CI_df[2:length(OR_df),1], ", ", CI_df[2:length(OR_df),2], "]"),
+#   p = p_val1[2:length(length(p_val1[,2])),2]
+# ))
+# #2. left join adjusted p values
+# #tab_df  <- left_join(tab_df, ADJ.p.values,by = join_by(p == p.value))
+# 
+# #3. 
+# tab_tab <- data.frame(cbind(
+#   variable = tab_df$variable,
+#   Beta = tab_df$Beta,
+#   Wald = tab_df$Wald,
+#   OR = tab_df$OR,
+#   CI = tab_df$CI,
+#   p = tab_df$p
+# ))
+# #round the numbers
+# tab_tab$Beta = round(as.numeric(tab_tab$Beta),2)
+# tab_tab$Wald = round(as.numeric(tab_tab$Wald),2)
+# tab_tab$OR = round(as.numeric(tab_tab$OR),2)
+# tab_tab$p = tab_tab$p = round(as.numeric(tab_tab$p),4)
+# 
+# tab_tab[1,1] = string
+# 
+# output <- tab_tab[1,]
+#   
+#   return(output)
+# }
 #Its done!
 ```
 
 
 ```{r,include=FALS}
-### Physical Health Conditions 
-# Conditions_reg = 0
-
-#2. Arthritis
-Conditions_reg<-data.frame(Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Arthritis,"Arthritis"))
-#3. Asthma
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Athsma,"Athsma"))
-#4. Cancer
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Cancer,"Cancer"))
-#5. Chronic Pain
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Chron_pain,"Chronic Pain"))
-#6. Diabetes
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Diabetes,"Diabetes"))
-#7. Heart Attack
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Hrt_atk,"Heart Attack"))
-#8. Heart Disease
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Hrt_dis,"Heart Disease"))
-#9. High Cholesterol
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$High_chol,"High Cholesterol"))
-#10. Hypertension
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$High_bld_press,"Hypertension"))
-#11. Kidney Disease
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Kid_dis,"Kidney Disease"))
-#12. Liver Disease
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Liv_dis,"Liver Disease"))
-#13. Migrane
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Migrane,"Migrane"))
-#14. MS
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$MS,"MS"))
-#15. Osteoporosis
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Osteoporosis,"Osteoporosis"))
-#16. Rheumatoid Arthritis
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Rhum_arth,"RA"))
-#17. Stroke
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Stroke,"Stroke"))
-### Mental Health Conditions
-#18. Alcohol Use Disorder
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$AUD_Current,"AUD"))
-#19. Drug Use Disorder
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$DUD_Current,"DUD"))
-#20. Major Depressive Disorder 
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$MDD_Current,"MDD"))
-#22 Posttraumatic Stress Disorder
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$PTSD_Current,"PTSD"))
-#23 Generalized Anxiety Disorder
-Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$GAD_Current,"GAD"))
+# ### Physical Health Conditions 
+# # Conditions_reg = 0
+# 
+# #2. Arthritis
+# Conditions_reg<-data.frame(Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Arthritis,"Arthritis"))
+# #3. Asthma
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Athsma,"Athsma"))
+# #4. Cancer
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Cancer,"Cancer"))
+# #5. Chronic Pain
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Chron_pain,"Chronic Pain"))
+# #6. Diabetes
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Diabetes,"Diabetes"))
+# #7. Heart Attack
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Hrt_atk,"Heart Attack"))
+# #8. Heart Disease
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Hrt_dis,"Heart Disease"))
+# #9. High Cholesterol
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$High_chol,"High Cholesterol"))
+# #10. Hypertension
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$High_bld_press,"Hypertension"))
+# #11. Kidney Disease
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Kid_dis,"Kidney Disease"))
+# #12. Liver Disease
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Liv_dis,"Liver Disease"))
+# #13. Migrane
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Migrane,"Migrane"))
+# #14. MS
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$MS,"MS"))
+# #15. Osteoporosis
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Osteoporosis,"Osteoporosis"))
+# #15.2 Obesity
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS$Obesity,"Obesity"))
+# #16. Rheumatoid Arthritis
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Rhum_arth,"RA"))
+# #17. Stroke
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$Stroke,"Stroke"))
+# ### Mental Health Conditions
+# #18. Alcohol Use Disorder
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$AUD_Current,"AUD"))
+# #19. Drug Use Disorder
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$DUD_Current,"DUD"))
+# #20. Major Depressive Disorder 
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$MDD_Current,"MDD"))
+# #22 Posttraumatic Stress Disorder
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$PTSD_Current,"PTSD"))
+# #23 Generalized Anxiety Disorder
+# Conditions_reg<-rbind(Conditions_reg,Condition_eval_Reg(thesis_NHRVS,thesis_NHRVS$GAD_Current,"GAD"))
 ```
 
 ```{r}
-Conditions_R_use <- Conditions_reg |>
-  mutate(
-    signifcant = ifelse(
-      as.numeric(p) < 0.05, 1, 0)
-    ) |>
-  filter(
-    signifcant == 1
-  )
-
-Conditions_R_use
+# Conditions_R_use <- Conditions_reg |>
+#   mutate(
+#     signifcant = ifelse(
+#       as.numeric(p) < 0.05, 1, 0)
+#     ) |>
+#   filter(
+#     signifcant == 1
+#   )
+# 
+# Conditions_R_use
 ```
 
 
@@ -719,10 +675,10 @@ PHC_Reg<-glm(Ex_rec~
              #Covariates
              Age + College + White_Race  +
              Income_60k_plus + Combat_Veteran + 
-             TOTAL_TRAUMAS + BMI +
+             TOTAL_TRAUMAS +
              #Physical Health Conditions
              Athsma + Chron_pain + Diabetes+ Hrt_atk + 
-             Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke,
+             Hrt_dis + High_chol + High_bld_press + Osteoporosis + Obesity + Stroke,
              #Mental Health conditions
              # AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current,
              # Data
@@ -738,14 +694,14 @@ PHC_Reg_sum <- tidy(PHC_Reg)
   coefs_PHC_Reg <- abs(coef(PHC_Reg))
   coefs_PHC_Reg
 #3. Odds ratio
-  OR_PHC_Reg <- exp(coef(PHC_Reg)[9:length(coefs_PHC_Reg)])
+  OR_PHC_Reg <- exp(coef(PHC_Reg)[8:length(coefs_PHC_Reg)])
 
 #4. OR 95% CI
-  CI_PHC_Reg <- data.frame(round(exp(confint(PHC_Reg)[9:length(coefs_PHC_Reg),]),2))
+  CI_PHC_Reg <- data.frame(round(exp(confint(PHC_Reg)[8:length(coefs_PHC_Reg),]),2))
 
 #5. P values 
-  p_val1<- cbind(PHC_Reg_sum$term[9:length(coefs_PHC_Reg)], 
-                 PHC_Reg_sum$p.value[9:length(coefs_PHC_Reg)])
+  p_val1<- cbind(PHC_Reg_sum$term[8:length(coefs_PHC_Reg)], 
+                 PHC_Reg_sum$p.value[8:length(coefs_PHC_Reg)])
     adj.p <- FDR(pvalues = p_val1)
     ADJ.p.values <- data.frame(rbind(adj.p$exclude, adj.p$select))
     ADJ.p.values
@@ -757,19 +713,19 @@ PHC_Reg_sum <- tidy(PHC_Reg)
   library(aod) # Wald test
   PHC_wald<- wald.test(b = coef(PHC_Reg),Sigma = vcov(PHC_Reg),Terms= 2:length(coefs_PHC_Reg))
   PHC_wald$result$chi2[1]
-  wald <- wald.test(b = coef(PHC_Reg),Sigma = vcov(PHC_Reg),Terms=9)$result$chi2[1]
-  for(i in 10:length(coefs_PHC_Reg)){
+  wald <- wald.test(b = coef(PHC_Reg),Sigma = vcov(PHC_Reg),Terms=8)$result$chi2[1]
+  for(i in 9:length(coefs_PHC_Reg)){
       wald <- append(wald, wald.test(b = coef(PHC_Reg),Sigma = vcov(PHC_Reg),Terms=i)$result$chi2[1])
   }
 #### Part 2. Make the table and export 
 
 #1. Create data frame
 PHC_Reg_df <-  data.frame(cbind(
-  variable = PHC_Reg_sum$term[9:length(PHC_Reg_sum$term)],
-  Beta = coefs_PHC_Reg[9:length(coefs_PHC_Reg)],
+  variable = PHC_Reg_sum$term[8:length(PHC_Reg_sum$term)],
+  Beta = coefs_PHC_Reg[8:length(coefs_PHC_Reg)],
   Wald = round(wald,2),
   OR = OR_PHC_Reg,
-  CI = paste0("[",CI_PHC_Reg[,1], ",", CI_PHC_Reg[,2], "]"),
+  CI = paste0("[",CI_PHC_Reg[,1], ", ", CI_PHC_Reg[,2], "]"),
   p = p_val1[,2]
 ))
 
@@ -780,8 +736,8 @@ PHC_Reg_tab <- data.frame(cbind(
   Wald = PHC_Reg_df$Wald,
   OR = PHC_Reg_df$OR,
   CI = PHC_Reg_df$CI,
-  p = PHC_Reg_df$p
-  # p = PHC_Reg_df$p.adjusted
+  # p = PHC_Reg_df$p
+  p = PHC_Reg_df$p.adjusted
 ))
 
 PHC_Reg_df 
@@ -790,13 +746,14 @@ PHC_Reg_tab$Beta = round(as.numeric(PHC_Reg_tab$Beta),2)
 PHC_Reg_tab$Wald = round(as.numeric(PHC_Reg_tab$Wald),2)
 PHC_Reg_tab$OR = round(as.numeric(PHC_Reg_tab$OR),2)
 PHC_Reg_tab$p = ifelse(as.numeric(PHC_Reg_df$p) < 0.001, "< 0.001",
-  round(as.numeric(PHC_Reg_df$p),2))
+  round(as.numeric(PHC_Reg_df$p),3))
 
 #2. create the row for the R2
   paste("Block 2 R^2 =", round((R2_PHC_Reg[[1]]*100),3),"%")
   variable = c(
-    paste0("Block 2 X^2=", round(PHC_wald$result$chi2[1],2),",p<0.001"),
-    paste0("Block 2 R^2 change=", round((block_2_R2[[1]]),3))  
+    "Block 2 - Physical Health Conditions",
+    paste0("X^2=", round(PHC_wald$result$chi2[1],2),",p<0.001"),
+    paste0("R^2 change=", round((block_2_R2[[1]]),3))  
   )
 
   R2TAB<-data.frame(cbind(
@@ -824,10 +781,10 @@ MHC_Reg<-glm(Ex_rec~
              #Covariates
              Age + College + White_Race  +
              Income_60k_plus + Combat_Veteran + 
-             TOTAL_TRAUMAS + BMI +
+             TOTAL_TRAUMAS + 
              #Physical Health Conditions
              Athsma + Chron_pain + Diabetes+ Hrt_atk + 
-             Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke +
+             Hrt_dis + High_chol + High_bld_press + Osteoporosis + Obesity + Stroke +
              #Mental Health conditions
              AUD_Current + DUD_Current + GAD_Current + MDD_Current + PTSD_Current,
              # Data
@@ -857,7 +814,7 @@ MHC_Reg_sum <- tidy(MHC_Reg)
     
 #6. R^2 for model
   R2_MHC_Reg <- performance::r2(MHC_Reg)
-  Block3_R2 = R2_MHC_Reg[[1]] - block_2_R2[[1]]
+  Block3_R2 = R2_MHC_Reg[[1]] - R2_PHC_Reg[[1]]
 
 #wald
   library(aod) # Wald test
@@ -876,7 +833,7 @@ MHC_Reg_df <-  data.frame(cbind(
   Beta = coefs_MHC_Reg[18:length(coefs_MHC_Reg)],
   Wald = round(wald,2),
   OR = OR_MHC_Reg,
-  CI = paste0("[",CI_MHC_Reg[,1], ",", CI_MHC_Reg[,2], "]"),
+  CI = paste0("[",CI_MHC_Reg[,1], ", ", CI_MHC_Reg[,2], "]"),
   p = p_val1[,2]
 ))
 
@@ -901,8 +858,9 @@ MHC_Reg_tab$p = ifelse(as.numeric(MHC_Reg_df$p) < 0.001, "< 0.001",
 
 #2. create the row for the R2
   variable = c(
-    paste0("Block 3 X^2=", round(MHC_wald$result$chi2[1],2),",p<0.001"),
-    paste0("Block 3 R^2=", round((Block3_R2[[1]]),3))  
+    "Block 3 - Mental Health Conditions",
+    paste0("X^2=", round(MHC_wald$result$chi2[1],2),",p<0.001"),
+    paste0("R^2 change=", round((Block3_R2[[1]]),3))  
   )
 
   R2TAB<-data.frame(cbind(
@@ -918,1224 +876,1297 @@ MHC_Reg_tab$p = ifelse(as.numeric(MHC_Reg_df$p) < 0.001, "< 0.001",
   
   MHC_Reg_tab
   Full_OR_tab
-  
-  MHC_Reg_df
-  
-Full_OR_tab$variable = 
-  c("Block 1 X^2=83.47,p<0.001","Block 1 R^2=0.047","Age","College",
-    "White_Race","Income_60k_plus","Combat_Veteran","TOTAL_TRAUMAS","BMI",
-    "Block 2 X^2=83.47,p<0.001","Block 2 R^2 change=0.01", "Athsma",  
-    "Chron_pain", "Diabetes", "Hrt_atk", "Hrt_dis", "High_chol", 
-    "High_bld_press", "Osteoporosis", "Stroke", "Block 3 X^2=83.47,p<0.001",
-    "Block 3 R^2=0.05", "AUD_Current", "DUD_Current", "MDD_Current", 
-    "PTSD_Current", "GAD_Current"
-    )
+```
+
+
+Prepare for table
+
+```{r}
+#create FP df
+fp_df <- data.frame(rbind(
+  #Block 1
+  NA,NA,NA,NA,
+  arrange(cov_OR_df,desc(OR)),
+  #Block 2
+  NA,NA,NA,NA,
+  arrange(PHC_Reg_df,desc(OR)),
+  #Block 3
+  NA,NA,NA,NA,
+  arrange(MHC_Reg_df,desc(OR)),
+  #Top row
+  NA
+))
+
+fp_df
 ```
 
 
 ```{r}
-# install.packages("report")
-# library(report)
-# 
-# X <- report(MHC_Reg)
-
-```
-
-## Importance of variables
-https://journals-sagepub-com.ezproxy.uky.edu/doi/abs/10.1177/1094428109341993?journalCode=orma
-
-Select data needed for analysis
-```{r}
-# rawdata<-read.csv("/Users/robertpietrzak/Downloads/DV.csv")
-#attach(rawdata)
-
-# thedata<-data.frame(DV, IV1, IV2, IV3)
-# thedata <- na.omit(thedata)
-# Labels<-names(thedata)[2:length(thedata)]
-mydata <- thesis_NHRVS |>
-  #Select all of the variables needed for the analysis
-  dplyr::select(
-    #IV
-      Ex_rec,
-    #Covariates
-       Age,College, White_Race,
-       Income_60k_plus, Combat_Veteran,
-       TOTAL_TRAUMAS, BMI,
-    #Physical Health Conditions
-       Athsma, Chron_pain, Diabetes,
-       Hrt_atk, Hrt_dis, High_chol,
-       High_bld_press, Osteoporosis, Stroke, 
-    #Mental Health conditions
-       AUD_Current, DUD_Current, GAD_Current,
-       MDD_Current, PTSD_Current
-  ) |>
-    # Convert all of the varaibles to numeric
-    mutate(
-      Ex_rec = as.numeric(Ex_rec),
-      Age = as.numeric(Age),
-      College = as.numeric(College),
-      White_Race = as.numeric(White_Race),
-      Income_60k_plus = as.numeric(Income_60k_plus),
-      Combat_Veteran = as.numeric(Combat_Veteran),
-      TOTAL_TRAUMAS = as.numeric(TOTAL_TRAUMAS),
-      BMI = as.numeric(BMI),
-      Athsma = as.numeric(Athsma),
-      Chron_pain = as.numeric(Chron_pain), 
-      Diabetes = as.numeric(Diabetes),
-      Hrt_atk = as.numeric(Hrt_atk), 
-      Hrt_dis = as.numeric(Hrt_dis), 
-      High_chol = as.numeric(High_chol),
-      High_bld_press = as.numeric(High_bld_press), 
-      Osteoporosis = as.numeric(Osteoporosis), 
-      Stroke = as.numeric(Stroke), 
-      AUD_Current = as.numeric(AUD_Current), 
-      DUD_Current = as.numeric(DUD_Current), 
-      GAD_Current = as.numeric(GAD_Current),
-      MDD_Current = as.numeric(MDD_Current), 
-      PTSD_Current = as.numeric(PTSD_Current)
+fp_df <- mutate(fp_df,
+    sig = ifelse(is.na(p.adjusted), NA, 
+          ifelse(p.adjusted<= 0.05, 16,1)),
+    Beta = round(as.numeric(fp_df$Beta),2),
+    OR =  round(as.numeric(fp_df$OR),2),
+    p_fig = ifelse(
+      is.na(p.adjusted), NA,
+      ifelse(p.adjusted < 0.001, "<0.001", 
+             round(as.numeric(p.adjusted),3))),
+    order = 0
     )
 
-mydata <- na.omit(mydata)
+#make CI variables df
+OR_CI <-data.frame(rbind(
+    NA,NA,NA,NA,
+    CI_Cov_Reg[2:length(CI_Cov_Reg$X2.5..),],
+    NA,NA,NA,NA,
+    CI_PHC_Reg,
+    NA,NA,NA,NA,
+    CI_MHC_Reg,
+    NA
+))
+OR_CI$variables = rownames(OR_CI)
+
+#left join CI based upon varaible names
+fp_df <- left_join(fp_df,OR_CI, by = join_by(variable == variables))
+colnames(fp_df)[11:12] <- c("OR_low","OR_high")
+
+#create OR label for FP
+fp_df <- mutate(fp_df,
+    label = 
+      #NAs      
+      ifelse(is.na(OR) |is.na(CI),NA,
+      #p <.05      
+      ifelse(p.adjusted <= 0.05 & p.adjusted >= 0.01,
+                   paste0(OR," [",OR_low,"-",OR_high,"]*"),
+      #p<.01
+      ifelse(p.adjusted < 0.01 & p.adjusted >= 0.001,
+                   paste0(OR," [",OR_low,"-",OR_high,"]**"),
+      #p<.001
+      ifelse(p.adjusted < 0.001,
+                   paste0(OR," [",OR_low,"-",OR_high,"]***"),
+      # else (i.e., p > .05)
+             paste0(OR," [",OR_low,"-",OR_high,"]")
+      )))))
+
+
+#assign variable names
+fp_df$variable <- c(
+    "Block 1",
+    "Covariates",
+    paste0("X^2=", round(cov_wald$result$chi2[1],2),",p<0.001"),
+    paste0("R^2=", round((R2_Cov_Reg[[1]]),3)),
+    "Some College",
+    "Income ≥ 60k",
+    "Combat Veteran",
+    "White",
+    "# of Traumas",
+    "Age", 
+    "Block 2",
+    "Physical Health", 
+    paste0("X^2=", round(PHC_wald$result$chi2[1],2),",p<0.001"),
+    paste0("R^2 change=", round((block_2_R2[[1]]),3)),
+    "Hypertension",   
+    "Heart Disease",
+    "Chronic Pain",
+    "High Cholesterol",
+    "Osteoporosis",
+    "Asthma",  
+    "Heart Attack",
+    "Stroke", 
+    "Obesity",
+    "Diabetes", 
+    "Block 3",
+    "Mental Health",
+    paste0("X^2=", round(MHC_wald$result$chi2[1],2),",p<0.001"),
+    paste0("R^2 change=", round((Block3_R2[[1]]),3)),
+    "Probable Current GAD",
+    "Probable Current PTSD",
+    "Probable Current AUD",
+    "Probable Current DUD",
+    "Probable Current MDD",
+    "Variable")
+
+
+# assign labels to top row and assign the order of varaibles
+fp_df[34,2] = "Beta"
+fp_df[34,3] = "Wald"
+fp_df[34,13] = "OR [95% CI]"
+fp_df[34,9] = "Adjusted p"
+fp_df$order = c(seq(2,34,1),1)
+#Final df for FP
+fp_df
 ```
 
-Functions for bootstrapping
+
+FP for logistic Regressions
 ```{r}
-logRegress<-function(mydata){
-  
-numVar<-NCOL(mydata)
-Variables<-names(mydata)[2:numVar]
-Y<-mydata[,1]
-data.preds<-mydata[,2:length(mydata[1,])]
-X<-scale(data.preds)
+#Create order varaible in dataset to keep it the same as the regression
 
+# FP_EX <- read_csv("~/Downloads/FP.min.dep")
 
-str(X)
+#rename the variables for the figure
+# install.packages("magrittr")
+# library(magrittr)
 
-X.svd<-svd(X)
-Q<-X.svd$v
-P<-X.svd$u
-Z<-P%*%t(Q)
-
-Z.stand<-scale(Z)
-
-Lambda<-solve(t(Z.stand)%*%Z.stand)%*%t(Z.stand)%*%X #Obtaining Lambda from equation 7 from Johnson (2000) pg 8
-
-logrfit<-glm(as.factor(Y$Ex_rec)~Z.stand,family=binomial)
-summary(logrfit)
-unstCoefs<-coef(logrfit)
-b<-unstCoefs[2:length(unstCoefs)]
-LpredY<-predict(logrfit,newdata=mydata,type="response")
-lYhat<-log(LpredY/(1-LpredY))#Creating logit-Y-hat
-stdlYhat<-sd(lYhat)#Getting stdev of logit-Y-hat
-getting.Rsq<-lm(LpredY~as.factor(Y$Ex_rec))#Getting R-sq
-Rsq<-summary(getting.Rsq)$r.squared
-beta<-b*((sqrt(Rsq))/stdlYhat)#Computing standardized logistic regression coefficients
-
-epsilon<-Lambda^2%*%beta^2
-R.sq<<-sum(epsilon)
-PropWeights<-(epsilon/R.sq)
-result <- data.frame(Variables, Raw.RelWeight=epsilon, Rescaled.RelWeight=PropWeights)
-return(result)
-}
-
-logBootstrap<-function(mydata, indices){
-mydata<-mydata[indices,]
-logWeights<-logRegress(mydata)
-return(logWeights$Raw.RelWeight)
-}
-
-logBootrand<-function(mydata, indices){
-mydata<-mydata[indices,]
-logRWeights<-logRegress(mydata)
-logReps<-logRWeights$Raw.RelWeight
-randWeight<-logReps[length(logReps)]
-randStat<-logReps[-(length(logReps))]-randWeight
-return(randStat)
-}
-
-#bootstrapping
-#install.packages("boot")
-
-
-mybootci<-function(x){
-boot.ci(logBoot,conf=0.95, type="bca", index=x)
-}
-
-runBoot<-function(num){
-INDEX<-1:num
-test<-lapply(INDEX, FUN=mybootci)
-test
-test2<-t(sapply(test,'[[',i=4)) #extracts confidence interval
-CIresult<<-data.frame(Variables, CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5])
-}
-
-myRbootci<-function(x){
-boot.ci(logRBoot,conf=0.95,type="bca",index=x)
-}
-
-runRBoot<-function(num){
-INDEX<-1:num
-test<-lapply(INDEX,FUN=myRbootci)
-test2<-t(sapply(test,'[[',i=4))
-CIresult<<-data.frame(Labels,CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5])
-}
-
-  #logRegress(thedata) # perfomed above manually
-```
-
-
-```{r, results='hide'}
-#1.1 Run function
-result <- logRegress(mydata)
-
-#1.2 save results
-RW.Results<-result
-RSQ.o<-R.sq
-
-
-
-RW.Results <- result |>
-  arrange(-Rescaled.RelWeight) |>
-  mutate(Rescaled.RelWeight = round((Rescaled.RelWeight*100),2),
-         Raw.percent = round(Raw.RelWeight*100,4)
-  )
-RW.Results
-
-# write_csv(RW.Results,"~/Downloads/RW.Results")
-```
-
-Block 1
-```{r}
-set.seed(123456)
-
-mydata_B1 <- thesis_NHRVS |>
-  #Select all of the variables needed for the analysis
-  dplyr::select(
-    #IV
-      Ex_rec,
-    #Covariates
-       Age,College, White_Race,
-       Income_60k_plus, Combat_Veteran,
-       TOTAL_TRAUMAS, BMI,
-  ) |>
-    # Convert all of the varaibles to numeric
-    mutate(
-      Ex_rec = as.numeric(Ex_rec),
-      Age = as.numeric(Age),
-      College = as.numeric(College),
-      White_Race = as.numeric(White_Race),
-      Income_60k_plus = as.numeric(Income_60k_plus),
-      Combat_Veteran = as.numeric(Combat_Veteran),
-      TOTAL_TRAUMAS = as.numeric(TOTAL_TRAUMAS),
-      BMI = as.numeric(BMI),
-    )
-
-mydata <- na.omit(mydata)
-
-#2.4 run boot function
-logBoot_B1<-boot(mydata_B1, # Data
-              logBootstrap, # Statistic
-              5000) # R / number of times
-
-#2.5 confidence interval for bootstraps
-logci_B1<-boot.ci(logBoot_B1,conf=0.95, type="bca")
-
-boot.ci(logBoot_B1, type="bca",index = 1)
-
-#2.6 runboot function
-numVar<-NCOL(mydata_B1)
-
-CI.Result_B1s<- tidy(logBoot_B1,conf.int=TRUE,conf.method="perc") 
-CI.Results_B1
-write_csv(CI.Results_B1, "~/Downloads/CI.Results_B1")
-
-boot.ci(logBoot_B1, type="bca",index = 1)
-
-#Rsq.O - logistic analog to Rsq
-RSQ.o_B1
-
-#The Raw and Rescaled Weights
-RW.Results_B1
-
-#BCa Confidence Intervals around the raw weights
-CI.Results_B1
-colnames(CI.Results_B1) <- paste0(colnames(CI.Results_B1),"_CI")
-```
-
-Block 2
-```{r}
-set.seed(123456)
-
-mydata_B2 <- thesis_NHRVS |>
-  #Select all of the variables needed for the analysis
-  dplyr::select(
-    #IV
-      Ex_rec,
-    #Covariates
-       Age,College, White_Race,
-       Income_60k_plus, Combat_Veteran,
-       TOTAL_TRAUMAS, BMI,
-    #Physical Health Conditions
-       Athsma, Chron_pain, Diabetes,
-       Hrt_atk, Hrt_dis, High_chol,
-       High_bld_press, Osteoporosis, Stroke, 
-  ) |>
-    # Convert all of the varaibles to numeric
-    mutate(
-      Ex_rec = as.numeric(Ex_rec),
-      Age = as.numeric(Age),
-      College = as.numeric(College),
-      White_Race = as.numeric(White_Race),
-      Income_60k_plus = as.numeric(Income_60k_plus),
-      Combat_Veteran = as.numeric(Combat_Veteran),
-      TOTAL_TRAUMAS = as.numeric(TOTAL_TRAUMAS),
-      BMI = as.numeric(BMI),
-      Athsma = as.numeric(Athsma),
-      Chron_pain = as.numeric(Chron_pain), 
-      Diabetes = as.numeric(Diabetes),
-      Hrt_atk = as.numeric(Hrt_atk), 
-      Hrt_dis = as.numeric(Hrt_dis), 
-      High_chol = as.numeric(High_chol),
-      High_bld_press = as.numeric(High_bld_press), 
-      Osteoporosis = as.numeric(Osteoporosis), 
-      Stroke = as.numeric(Stroke), 
-    )
-
-mydata <- na.omit(mydata)
-
-mydata <- na.omit(mydata)
-
-#2.4 run boot function
-logBoot_B2<-boot(mydata_B2, # Data
-              logBootstrap, # Statistic
-              5000) # R / number of times
-
-#2.5 confidence interval for bootstraps
-logci_B2<-boot.ci(logBoot_B2,conf=0.95, type="bca")
-
-boot.ci(logBoot_B2, type="bca",index = 1)
-
-#2.6 runboot function
-numVar<-NCOL(mydata_B2)
-
-CI.Result_B2s<- tidy(logBoot_B2,conf.int=TRUE,conf.method="perc") 
-CI.Results_B2
-write_csv(CI.Results_B2, "~/Downloads/CI.Results_B2")
-
-boot.ci(logBoot_B2, type="bca",index = 1)
-
-#Rsq.O - logistic analog to Rsq
-RSQ.o_B2
-
-#The Raw and Rescaled Weights
-RW.Results_B2
-
-#BCa Confidence Intervals around the raw weights
-CI.Results_B2
-colnames(CI.Results_B2) <- paste0(colnames(CI.Results_B2),"_CI")
-
-```
-
-
-```{r, results='hide'}
-
-mydata_B3 <- thesis_NHRVS |>
-  #Select all of the variables needed for the analysis
-  dplyr::select(
-    #IV
-      Ex_rec,
-    #Covariates
-       Age,College, White_Race,
-       Income_60k_plus, Combat_Veteran,
-       TOTAL_TRAUMAS, BMI,
-    #Physical Health Conditions
-       Athsma, Chron_pain, Diabetes,
-       Hrt_atk, Hrt_dis, High_chol,
-       High_bld_press, Osteoporosis, Stroke, 
-    #Mental Health conditions
-       AUD_Current, DUD_Current, MDD_Current, 
-       PTSD_Current, GAD_Current    
-  ) |>
-    # Convert all of the varaibles to numeric
-    mutate(
-      Ex_rec = as.numeric(Ex_rec),
-      Age = as.numeric(Age),
-      College = as.numeric(College),
-      White_Race = as.numeric(White_Race),
-      Income_60k_plus = as.numeric(Income_60k_plus),
-      Combat_Veteran = as.numeric(Combat_Veteran),
-      TOTAL_TRAUMAS = as.numeric(TOTAL_TRAUMAS),
-      BMI = as.numeric(BMI),
-      Athsma = as.numeric(Athsma),
-      Chron_pain = as.numeric(Chron_pain), 
-      Diabetes = as.numeric(Diabetes),
-      Hrt_atk = as.numeric(Hrt_atk), 
-      Hrt_dis = as.numeric(Hrt_dis), 
-      High_chol = as.numeric(High_chol),
-      High_bld_press = as.numeric(High_bld_press), 
-      Osteoporosis = as.numeric(Osteoporosis), 
-      Stroke = as.numeric(Stroke), 
-      AUD_Current = as.numeric(AUD_Current), 
-      DUD_Current = as.numeric(DUD_Current), 
-      MDD_Current = as.numeric(MDD_Current),
-      PTSD_Current = as.numeric(PTSD_Current), 
-      GAD_Current = as.numeric(GAD_Current)  
-    )
-
-mydata_B3 <- na.omit(mydata_B3)
-
-#2. Bootstraps
-#Bootstrap Confidence interval around the individual relative weights
-#Please be patient -- This can take a few minutes to run
-
-#2.1 the function to be ran
-# logBoot<-boot(mydata, # Data 
-#               logBootstrap, # Statistic
-#               10000) # R / number of times
-
-#2.2 Boot calls the logBootstrap function, which just pulls out the raw.relWeight at a given index
-# logBootstrap<-function(mydata, indices){
-# mydata<-mydata[indices,]
-# logWeights<-logRegress(mydata)
-# return(logWeights$Raw.RelWeight)
-# }
-
-#2.3 Set seed
-set.seed(123456)
-
-#2.4 run boot function
-logBoot_B3 <-boot(mydata_B3, # Data
-              logBootstrap, # Statistic
-              10000) # R / number of times
-
-write_csv(logBoot_B3,"/Users/troyh/Downloads/logBoot_B3")
-
-#2.5 confidence interval for bootstraps
-logci_B3<-boot.ci(logBoot_B3,conf=0.95, type="bca")
-
-boot.ci(logBoot_B3, type="bca",index = 1)
-
-#2.6 runboot function
-numVar<-NCOL(mydata_B3)
-
-CI.Result_B3s<- tidy(logBoot_B3,conf.int=TRUE,conf.method="perc") 
-CI.Results_B3
-write_csv(CI.Results_B3, "/Users/troyh/Downloads/CI.Results_B3")
-
-# runBoot(length(mydata[,2:numVar]))
-
-
-
-boot.ci(logBoot_B3, type="bca",index = 1)
-# # runBoot<-function(num){
-
-#3 #Bootstrapped Confidence interval tests of Significance
-#Please be patient -- This can take a few minutes to run
-#3.1 
-# randVar<-rnorm(length(mydata[,1]),0,1)
-# randData<-cbind(mydata,randVar)
-# randData <- na.omit(randData)
-# logRBoot<-boot(mydata,logBootrand, 5000)
-# logRci<-boot.ci(logRBoot,conf=0.95, type="bca")
-# 
-# rand_CI_B3<- tidy(logRBoot,conf.int=TRUE,conf.method="perc")
-# write_csv(rand_CI,"~/Downloads/rand_CI")
-# runRBoot(length(randData[,2:(numVar-1)]))
-# CI.Significance<-CIresult
-# rand_CI
-# 
-# #Rsq.O - logistic analog to Rsq
-# RSQ.o_B3
-# 
-# #The Raw and Rescaled Weights
-# RW.Results_B3
-# 
-# sum(RW.Results$Raw.RelWeight)
-# 
-# #BCa Confidence Intervals around the raw weights
-# CI.Results_B3
-# colnames(CI.Results_B3) <- paste0(colnames(CI.Results_B3),"_CI")
-# 
-# #BCa Confidence Interval Tests of significance
-# rand_CI_B3
-# colnames(rand_CI_B3) <- paste0(colnames(rand_CI_B3),"_CI_R")
-# #If Zero is not included, Weight is Significant
-```
-
-
-```{r, results='hide'}
-weights_CI <- CI.Results |>
-  mutate(
-  Weight = round(statistic_CI*100,2),
-  CI = paste0("[",
-              round(conf.low_CI*100,2), ", ", round(conf.high_CI*100,2), "]")
-  )
-
-wt_df <- left_join(RW.Results,weights_CI, by= join_by(Raw.RelWeight==statistic_CI))
-wt_df <- wt_df |>
-  mutate(
-    raw_weights = round(Raw.RelWeight*100,2),
-    scale_check = round((Raw.RelWeight/sum(Raw.RelWeight)*100),2),
-    CI_Low_raw = Rescaled.RelWeight - (1.96*(std.error_CI*100)),
-    CI_High_raw = Rescaled.RelWeight + (1.96*(std.error_CI*100)),
-    CI_low_rescale = conf.low_CI/(RSQ.o),
-    CI_high_rescale = conf.high_CI/(RSQ.o),
-    CI_low_percent = round(CI_low_rescale*100,2),
-    CI_high_percent = round(CI_high_rescale*100,2),
-    CI_rescale =
-      paste0("[",CI_low_percent, ", ", CI_high_percent, "]"),
-    wt_text = paste0(Rescaled.RelWeight, " [",CI_low_percent, ", ", CI_high_percent, "]")
-  )
-
-wt_df <- left_join(wt_df,Full_OR_tab, by= join_by(Variables==variable))
-
-wt_df
-```
-
-```{r}
-R2_plot <- ggplot2::ggplot(wt_df, aes(x=reorder(Variables,Raw.percent),y=Raw.percent)) +
-  # geom_hline(yintercept = 1,linetype="dashed",alpha = .25) +
-  # geom_hline(yintercept = .5,linetype="dashed",alpha = .25) +
-  geom_bar(stat = "identity", color = "Black") +
-  ggtitle("Psuedo R^2 (%) of predictors on Physical Activity") +
+EX_FP <- 
+  fp_df |>
+  ggplot(aes(y = reorder(variable, -order), color = as.factor(sig))) +
+  #take away background
   theme_classic() +
-  xlab('Variable')+
-  ylab('Psuedo R^2 (%) in physical activity')+
-  ylim(0,3)+
-  geom_text(aes(label = Raw.percent), vjust =.5, hjust = -.5, color = "black")+
-  coord_flip() 
-
-CI_R2 <-  
-      wt_df |>
-      ggplot() +
-        geom_text(aes(x = 0, y = reorder(Variables,Raw.percent), label = CI), hjust = 0) +
-        theme_void() 
-        # coord_cartesian(ylim = c(1,length(FP_dep$Variable)))
-
-library(patchwork)
-layout <- c(
-  patchwork::area(t = 0, l = 0, b = 30, r = 21),
-  patchwork::area(t = 0, l = 16, b = 30, r = 30)
-)
-
-R2_plot + CI_R2 + plot_layout(design = layout)
-```
-
-
-```{r, results='hide'}
- # wt_df <- wt_df |>
- #  mutate(
- #    
- #    
- #    
- # 
- #    
- # 
- #  )
- # 
- # 
-
-```
-
-
-```{r, results='hide'}
-wt_plot <- ggplot2::ggplot(wt_df, aes(x=reorder(Variables,Rescaled.RelWeight),y=Rescaled.RelWeight)) +
-  # geom_hline(yintercept = 1,linetype="dashed",alpha = .25) +
-  # geom_hline(yintercept = .5,linetype="dashed",alpha = .25) +
-  geom_bar(stat = "identity", color = "Black") +
-  #ggtitle("Relative weight of predictors on Physical Activity") +
+  #make the forrest plot
+  geom_point(aes(x=OR), shape= 16,
+               # ifelse(FP_dep$p.adjusted <= 0.05, 
+               #                        16, # colored ones for significant varaibles
+               #                        1), # uncolored ones for insignificant varaibles
+             size=4,show.legend = FALSE) +
+  geom_linerange(aes(xmin=OR_low, xmax=OR_high),size = 1, show.legend = FALSE) +
+  # geom_errorbar(aes(xmin=OR_low, xmax=OR_high),width =.6, show.legend = FALSE) +
+  scale_color_manual(values = c("black","black"))+
+  #change x axis name
   labs(
-    title = "Relative weight of predictors on Physical Activity",
-    subtitle = "With 5000 bootstraped confidence intervals",
-  ) +
-  theme_classic() +
-  xlab('Variable')+
-  ylab('% weight (i.e., relative importance) of variance (Pseudo R^2) in physical activity')+
-  ylim(0,45)+
-  geom_text(aes(label = wt_text), vjust =.5, hjust = -.1, color = "black")+
-  coord_flip() 
+    x="Odds Ratio",
+    # title = "    Odds of Meeting Physical Activity Guidelines",
+    subtitle ="Odds of Meeting Physical Activity Guidelines") +
+  #adjust the dimentions. 
+  coord_cartesian(ylim = c(1,length(fp_df$variable))) +
+  #add a line at 1 for reference 
+  geom_vline(xintercept = 1,linetype="dashed",alpha = .50) + 
+  #add anotations to help suggests what each side means.
+  annotate("text", x = .6, y = length(fp_df$variable) -1 , label = "Less Likely", size= 4) +
+  annotate("text", x = 1.4, y = length(fp_df$variable) -1, label = "More Likely",size= 4) +
+  #Git rid of the Y - Axis
+    theme(axis.line.y = element_blank(),
+        axis.ticks.y= element_blank(),
+        axis.text.y= element_blank(),
+        axis.title.y= element_blank())
 
+EX_text <- 
+  fp_df |>
+  ggplot(aes(y = reorder(variable, -order))) +
+  geom_text(aes(x = 0, label = variable), hjust = 0, 
+        fontface = ifelse(fp_df$variable == "Variable" |
+                          fp_df$variable == "Block 1"  |
+                          fp_df$variable == "Block 2"  |
+                          fp_df$variable == "Block 3", "bold","plain")) +
+  geom_text(aes(x = 1.1, label = Beta),
+        hjust = 0,
+        fontface = ifelse(fp_df$Beta == "Beta", "bold","plain")) + 
+  geom_text(aes(x = 1.5, label = Wald),
+        hjust = 0,
+        fontface = ifelse(fp_df$Wald == "Wald", "bold","plain")) +
+  geom_text(aes(x = 1.9, label = label),
+        hjust = 0,
+        fontface = ifelse(fp_df$label == "OR [95% CI]", "bold","plain")) +
+  theme_void() +     
+  coord_cartesian(ylim = c(1,length(fp_df$variable)), xlim = c(0, 4))
 
+library("patchwork")
 
-
-wt_df %>%
-  ggplot(aes(y = reorder(Variables, Rescaled.RelWeight))) +
-  geom_linerange(aes(xmin=CI_low_percent, xmax=CI_high_percent),size = 1.25, show.legend = FALSE) +
-  #geom_errorbar(aes(xmin=CI_low_percent, xmax=CI_high_percent),width =.5, show.legend = FALSE) +
-    geom_point(aes(x=Rescaled.RelWeight), shape = 18, size=5,show.legend = FALSE, color="red") +
-  theme_classic() 
-```
-
-
-```{r, results='hide'}
-Wald_plot  <- wt_df |>
-      ggplot() +
-        geom_text(aes(x = 0, y = reorder(Variables,Raw.percent), label = Wald), hjust = 0) +
-        theme_void() 
-        # coord_cartesian(ylim = c(1,length(FP_dep$Variable)))
-      
-library(patchwork)
 layout <- c(
-  patchwork::area(t = 0, l = 0, b = 30, r = 20),
-  patchwork::area(t = 0, l = 16, b = 30, r = 30)
+  patchwork::area(t = 0, l = 0, b = 30, r = 25),
+  patchwork::area(t = 0, l = 17, b = 30, r = 26)
 )
 
-wt_plot + Wald_plot + plot_layout(design = layout)
-
+EX_text + EX_FP + plot_layout(design = layout)
 ```
 
 
+<!-- ## Importance of variables -->
+<!-- https://journals-sagepub-com.ezproxy.uky.edu/doi/abs/10.1177/1094428109341993?journalCode=orma -->
+
+<!-- Select data needed for analysis -->
+<!-- ```{r} -->
+<!-- RIA_Vars<-fp_df |> -->
+<!--   # arrange(p.adjusted) -->
+<!--   filter(p.adjusted <0.05) -->
+<!-- RIA_Vars -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- mydata <- thesis_NHRVS |> -->
+<!--     mutate(Obesity = ifelse(is.na(BMI), NA, -->
+<!--       ifelse(BMI >=30,1,0)) -->
+<!--     ) |> -->
+<!--   #Select all of the variables needed for the analysis -->
+<!--   dplyr::select( -->
+<!--     #IV -->
+<!--       Ex_rec, -->
+<!--     #Covariates -->
+<!--        Age,College, -->
+<!--        Income_60k_plus, -->
+<!--     #Physical Health Conditions -->
+<!--        Athsma, Diabetes, Obesity, -->
+<!--        # Hrt_atk, Hrt_dis,  -->
+<!--     #Mental Health conditions -->
+<!--       DUD_Current, GAD_Current, MDD_Current,  -->
+<!--   )|> -->
+<!--     # Convert all of the varaibles to numeric -->
+<!--     mutate( -->
+<!--       Ex_rec = as.numeric(Ex_rec), -->
+<!--       Age = as.numeric(Age), -->
+<!--       College = as.numeric(College), -->
+<!--       Income_60k_plus = as.numeric(Income_60k_plus), -->
+<!--       Obesity = as.numeric(Obesity), -->
+<!--       Athsma = as.numeric(Athsma), -->
+<!--       Diabetes = as.numeric(Diabetes), -->
+<!--       DUD_Current = as.numeric(DUD_Current),  -->
+<!--       GAD_Current = as.numeric(GAD_Current), -->
+<!--       MDD_Current = as.numeric(MDD_Current),  -->
+
+<!--     ) -->
+
+<!-- mydata <- na.omit(mydata) -->
+<!-- ``` -->
+
+<!-- Functions for bootstrapping -->
+<!-- ```{r} -->
+<!-- logRegress<-function(mydata){ -->
+
+<!-- numVar<-NCOL(mydata) -->
+<!-- Variables<-names(mydata)[2:numVar] -->
+<!-- Y<-mydata[,1] -->
+<!-- data.preds<-mydata[,2:length(mydata[1,])] -->
+<!-- X<-scale(data.preds) -->
+
+
+<!-- str(X) -->
+
+<!-- X.svd<-svd(X) -->
+<!-- Q<-X.svd$v -->
+<!-- P<-X.svd$u -->
+<!-- Z<-P%*%t(Q) -->
+
+<!-- Z.stand<-scale(Z) -->
+
+<!-- Lambda<-solve(t(Z.stand)%*%Z.stand)%*%t(Z.stand)%*%X #Obtaining Lambda from equation 7 from Johnson (2000) pg 8 -->
+
+<!-- logrfit<-glm(as.factor(Y$Ex_rec)~Z.stand,family=binomial) -->
+<!-- summary(logrfit) -->
+<!-- unstCoefs<-coef(logrfit) -->
+<!-- b<-unstCoefs[2:length(unstCoefs)] -->
+<!-- LpredY<-predict(logrfit,newdata=mydata,type="response") -->
+<!-- lYhat<-log(LpredY/(1-LpredY))#Creating logit-Y-hat -->
+<!-- stdlYhat<-sd(lYhat)#Getting stdev of logit-Y-hat -->
+<!-- getting.Rsq<-lm(LpredY~as.factor(Y$Ex_rec))#Getting R-sq -->
+<!-- Rsq<-summary(getting.Rsq)$r.squared -->
+<!-- beta<-b*((sqrt(Rsq))/stdlYhat)#Computing standardized logistic regression coefficients -->
+
+<!-- epsilon<-Lambda^2%*%beta^2 -->
+<!-- R.sq<<-sum(epsilon) -->
+<!-- PropWeights<-(epsilon/R.sq) -->
+<!-- result <- data.frame(Variables, Raw.RelWeight=epsilon, Rescaled.RelWeight=PropWeights) -->
+<!-- return(result) -->
+<!-- } -->
+
+<!-- logBootstrap<-function(mydata, indices){ -->
+<!-- mydata<-mydata[indices,] -->
+<!-- logWeights<-logRegress(mydata) -->
+<!-- return(logWeights$Raw.RelWeight) -->
+<!-- } -->
+
+<!-- logBootstrap_adj<-function(mydata, indices){ -->
+<!-- mydata<-mydata[indices,] -->
+<!-- logWeights<-logRegress(mydata) -->
+<!-- return(logWeights$Rescaled.RelWeigh) -->
+<!-- } -->
+
+<!-- logBootrand<-function(mydata, indices){ -->
+<!-- mydata<-mydata[indices,] -->
+<!-- logRWeights<-logRegress(mydata) -->
+<!-- logReps<-logRWeights$Raw.RelWeight -->
+<!-- randWeight<-logReps[length(logReps)] -->
+<!-- randStat<-logReps[-(length(logReps))]-randWeight -->
+<!-- return(randStat) -->
+<!-- } -->
+
+<!-- #bootstrapping -->
+<!-- #install.packages("boot") -->
+
+<!-- mybootci<-function(x){ -->
+<!-- boot.ci(logBoot,conf=0.95, type="bca", index=x) -->
+<!-- } -->
+
+<!-- runBoot<-function(num){ -->
+<!-- INDEX<-1:num -->
+<!-- test<-lapply(INDEX, FUN=mybootci) -->
+<!-- test -->
+<!-- test2<-t(sapply(test,'[[',i=4)) -->
+<!-- return(test2) -->
+<!-- # CIresult<<-data.frame(Variables = coln, CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5]) -->
+<!-- } -->
+
+<!-- myRbootci<-function(x){ -->
+<!-- boot.ci(logRBoot,conf=0.95,type="bca",index=x) -->
+<!-- } -->
+
+<!-- runRBoot<-function(num){ -->
+<!-- INDEX<-1:num -->
+<!-- test<-lapply(INDEX,FUN=myRbootci) -->
+<!-- test2<-t(sapply(test,'[[',i=4)) -->
+<!-- CIresult<<-data.frame(Labels,CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5]) -->
+<!-- } -->
+<!-- ``` -->
 
-using varImp from {caret} we can examine the relative importance of each variable
-### Binary outcome
-```{r}
-library(caret)
-#https://topepo.github.io/caret/variable-importance.html
-
-V <- varImp(MHC_Reg, Scale=TRUE)
-
-V <- V |>
-  mutate(
-    wt_scaled = round((Overall/sum(Overall))*100,2),
-  variable = 
-    c("Age", "College", "White_Race", "Income_60k_plus", "Combat_Veteran", 
-      "TOTAL_TRAUMAS", "BMI", "Athsma", "Chron_pain", "Diabetes", "Hrt_atk", 
-      "Hrt_dis",
-      "High_chol", "High_bld_press", "Osteoporosis", "Stroke", "AUD_Current", 
-      "DUD_Current", "MDD_Current", "PTSD_Current","GAD_Current")
-  )
-
-V <- left_join(V,Full_OR_tab, by= join_by(variable==variable))
-
-
-# For classification, ROC curve analysis is conducted on each predictor. For two class problems, a series of cutoffs is applied to the predictor data to predict the class. The sensitivity and specificity are computed for each cutoff and the ROC curve is computed. The trapezoidal rule is used to compute the area under the ROC curve. This area is used as the measure of variable importance
-
-L <- ggplot2::ggplot(V, aes(x=reorder(variable,wt_scaled), y=wt_scaled)) +
-geom_point( color="blue", size=4, alpha=0.6)+
-geom_segment( aes(x=variable, xend=variable, y=0, yend=wt_scaled), 
-color='skyblue') +
-xlab('Variable')+
-ylab('Overall Importance (%) explained')+
-theme_classic() +
-coord_flip() 
-
-Wald_plot  <- wt_df |>
-      ggplot() +
-        geom_text(aes(x = 0, y = reorder(Variables,Raw.percent), label = Wald), hjust = 0) +
-        theme_void() 
-        # coord_cartesian(ylim = c(1,length(FP_dep$Variable)))
-      
-library(patchwork)
-layout <- c(
-  patchwork::area(t = 0, l = 0, b = 30, r = 21),
-  patchwork::area(t = 0, l = 16, b = 30, r = 30)
-)
-
-L + Wald_plot + plot_layout(design = layout)
-```
-
-### relative weight analysis
-```{r}
-devtools::install_github("martinctc/rwa")
-#https://langtest.jp/shiny/rwa/
-library(rwa)
-
-RWA <- mydata_B3 %>%
-  rwa(outcome = "Ex_rec",
-      predictors = 
-        c("Age", "College", "White_Race", "Income_60k_plus", "Combat_Veteran", 
-      "TOTAL_TRAUMAS", "BMI", "Athsma", "Chron_pain", "Diabetes", "Hrt_atk", 
-      "Hrt_dis",
-      "High_chol", "High_bld_press", "Osteoporosis", "Stroke", "AUD_Current", 
-      "DUD_Current", "MDD_Current", "PTSD_Current","GAD_Current"),
-      applysigns = TRUE,
-      plot = TRUE)
-
-RWA$result
-
-RWA_plot <- ggplot2::ggplot(RWA$result, aes(x=reorder(Variables,Rescaled.RelWeight), y=Rescaled.RelWeight)) +
-geom_point( color="blue", size=4, alpha=0.6)+
-geom_segment( aes(x=Variables, xend=Variables, y=0, yend=Rescaled.RelWeight), 
-color='skyblue') +
-xlab('Variable')+
-ylab('Overall Importance (%) explained')+
-theme_classic() +
-coord_flip() 
-```
-
-RElative importance analysis
-```{r}
-library(relaimpo)
-
-
- 
-fit1 <- glm(MET_min~
-             #Covariates
-             Age + College + White_Race  +
-             Income_60k_plus + Combat_Veteran + 
-             TOTAL_TRAUMAS + BMI + 
-             #Physical Health Conditions
-             Athsma + Chron_pain + Diabetes+ Hrt_atk +
-             Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke +
-             #Mental Health conditions
-             AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current,
-             # Data
-             data =thesis_NHRVS,
-             # Specify weights
-             weights = weight)
-
-relimp <- calc.relimp(fit1, type = "lmg", importance = TRUE)
-calc.relimp
-?calc.relimp()
-
-# View the structure of the relimp object
-str(relimp)
- 
-# Plot the relative importance of predictors
-plot(relimp)
-
-#order of which variables are important
-
-
-impo_values<- unlist(relimp@lmg)
-attri <- attributes(impo_values)
-impo_order<- unlist(relimp@lmg.rank)
-
-impo_df <- data.frame(
-  cbind(
-    vars = attri$names,
-    round(impo_values*100,2),
-    impo_order
-  )
-)
-colnames(impo_df) <- c("vars","R2","Order")
-
-impo_df$R2 <- as.numeric(impo_df$R2)
-impo_df$Order <- as.numeric(impo_df$Order)
-
-# ####### Bootstraped relimp
-# 
-# boot_rel <- boot.relimp(fit, type = "lmg", 
-#                         nboot = 10)
-#  
-# boot_eval <- booteval.relimp(boot_rel)
-# plot(boot_eval)
-# 
-# 
-# 
-
-ggplot2::ggplot(impo_df, aes(x=reorder(vars,-Order),y=R2),
-                ) +
-  geom_hline(yintercept = 1,linetype="dashed",alpha = .25) +
-  geom_hline(yintercept = .5,linetype="dashed",alpha = .25) +
-  geom_bar(stat = "identity", color = "Black") +
-  ggtitle("% Varaince (i.e., R^2) explaiend by predictors of Physical Activity") +
-  theme_classic() +
-  xlab('Variable')+
-  ylab('% of Response Variance')+
-  ylim(0,1.5)+
-  geom_text(aes(label = R2), vjust =.5, hjust = -.5, color = "black")+
-  coord_flip() 
-              
-ggplot2::ggplot(V, aes(x=reorder(rownames(V),Overall), y=Overall)) +
-geom_point( color="blue", size=4, alpha=0.6)+
-geom_segment( aes(x=rownames(V), xend=rownames(V), y=0, yend=Overall), 
-color='skyblue') +
-xlab('Variable')+
-ylab('Overall Importance')+
-theme_light() +
-coord_flip() 
-```
-
-```{r}
-install.packages("bruceR")
-library(bruceR)
-
-mod_NHRVS <- thesis_NHRVS |>
-  mutate(
-    GAD_Current = recode(GAD_Current,
-      "0" = "1",
-      "1" = "2"
-    ),
-    Diabetes = recode(Diabetes,
-      "0" = "1",
-      "1" = "2"
-    )
-  )
-
-str(mod_NHRVS$Diabetes)
-
-thesis_NHRVS$High_bld_press
-
-attri$names
-
-###MCS
-#insignificant moderation
-PROCESS(thesis_NHRVS,
-  x="High_bld_press", y="Ex_rec", mods = "MCS", covs = c("Age", "College", "White_Race",
-  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
-)
-
-#nonsignficiant
-PROCESS(thesis_NHRVS,
-  x="Diabetes", y="Ex_rec", mods = "MCS", covs = c("Age", "College", "White_Race",
-  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
-)
-
-#Significant
-PROCESS(thesis_NHRVS,
-  x="High_chol", y="Ex_rec", mods = "MCS", covs = c("Age", "College", "White_Race",
-  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
-)
-
-#Significant
-PROCESS(thesis_NHRVS,
-  x="GAD_Current", y="Ex_rec", mods = "PCS", covs = c("Age", "College", "White_Race",
-  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") 
-)
-
-#nonsignficiant
-PROCESS(thesis_NHRVS,
-  x="Diabetes", y="Ex_rec", mods = "MCS", covs = c("Age", "College", "White_Race",
-  "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI")  
-)
-```
-
-## Interactions of health conditions on physical activity recomendations
-```{r}
-# library(bruceR)
-# # assign a vector of covariates to be used in analysis
-# covs = c("Age", "College", "White_Race",
-#   "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI")
-# 
-# ##### Diabetes
-# PROCESS(thesis_NHRVS, # Data
-#   x="Diabetes",  # Health conditoin
-#   mods = "GAD_Current",  # Moderator
-#   y="Ex_rec", # outcome variable
-#   covs = covs) # covariates
-# 
-# PROCESS(thesis_NHRVS,
-#   x="Diabetes", mods = "MDD_Current",
-#   y="Ex_rec",
-#   covs = covs)
-# 
-# PROCESS(thesis_NHRVS,
-#   x="Diabetes", mods = "DUD_Current",
-#   y="Ex_rec",
-#   covs = covs)
-# 
-# #### Asthma
-# PROCESS(thesis_NHRVS,
-#   x="Athsma", mods = "Total_HC",
-#   y="Ex_rec",
-#   covs = covs)
-# 
-# ### Osteoporosis
-# 
-# PROCESS(thesis_NHRVS,
-#   x="Osteoporosis", mods = "Total_HC",
-#   y="Ex_rec",
-#   covs = covs)
-# 
-# ### HRT Attack
-# 
-# PROCESS(thesis_NHRVS,
-#   x="Hrt_atk", mods = "Total_HC",
-#   y="Ex_rec",
-#   covs = covs)
-# 
-# ### High cholesterol
-# 
-# PROCESS(thesis_NHRVS,
-#   x="High_chol", mods = "Total_HC",
-#   y="Ex_rec",
-#   covs = covs)
-# 
-# PROCESS(thesis_NHRVS,
-#   x="GAD_Current" , # Health condition
-#   mods = "Total_HC", # moderator
-#   y="Ex_rec", # outcome variable
-#   covs = covs)
-# 
-# PROCESS(thesis_NHRVS,
-#   x="MDD_Current", mods = "Total_HC",
-#   y="Ex_rec",
-#   covs = covs)
-# 
-# PROCESS(thesis_NHRVS,
-#   x="Stroke", mods = "Total_HC",
-#   y="Ex_rec",
-#   covs = covs)
-```
-
-https://www.appsilon.com/post/r-logistic-regression
-ROC. vs AUC
-```{r}
-Reg_df <- thesis_NHRVS |>
-  dplyr::select(
-    Ex_rec,
-             #Covariates
-             Age , College , White_Race  ,
-             Income_60k_plus , Combat_Veteran , 
-             TOTAL_TRAUMAS , BMI ,
-             #Physical Health Conditions
-             Athsma , Chron_pain , Diabetes, Hrt_atk , 
-             Hrt_dis , High_chol , High_bld_press , Osteoporosis , Stroke ,
-             #Mental Health conditions
-             AUD_Current , DUD_Current , MDD_Current , PTSD_Current , GAD_Current,
-             # Data
-             weight)
-Reg_df <-na.omit(Reg_df)
-
-fit1<-glm(Ex_rec~
-             #Covariates
-             Age + College + White_Race  +
-             Income_60k_plus + Combat_Veteran + 
-             TOTAL_TRAUMAS + BMI +
-             #Physical Health Conditions
-             Athsma + Chron_pain + Diabetes+ Hrt_atk + 
-             Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke +
-             #Mental Health conditions
-             AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current,
-             # Data
-             data =Reg_df,
-             # Specify type of regression
-             family="binomial",weights = weight)
-
-length(probabilities)
-# just number of conditions
-probabilities <-  predict(fit1, NewData=Reg_df ,type = "response")
-predicted.classes <- ifelse(probabilities > 0.5, 1,0)
-
-#confusion matrix
-table(HC_df$Ex_rec, predicted.classes)
-#roc
-roc1 <- roc(response = Reg_df$Ex_rec,
-               predictor = probabilities)
-
-ggroc(roc1, legacy.axes = TRUE) +
-  labs(x = 'False-positive rate', y = 'True-positive rate',
-       title = 'ROC curve\nEx_rec ~ # Health Conditions + Covariates') +
-  annotate('text', x = .5, y = .5, label = paste0('AUC: ', round(auc(roc1), digits = 2)))
-```
-
-
-```{r}
-#just number of conditions
-
-HC_df <- thesis_NHRVS |>
-  dplyr::select(
-    #outcome
-    Ex_rec,
-    #covaraiates
-    Age,College,White_Race,Income_60k_plus,Combat_Veteran,TOTAL_TRAUMAS,BMI,  
-    #HC
-    Total_HC,
-    #weights
-    weight
-  ) 
-
-HC_df <- na.omit(HC_df)
-library(caret)
-
-
-fit2 <- glm(Ex_rec~
-             #Covariates
-             Age + College + White_Race  +
-             Income_60k_plus + Combat_Veteran + 
-             TOTAL_TRAUMAS + BMI + 
-             #number of health conditions
-             Total_HC,
-             # Data
-             data =HC_df,
-             # Specify weights
-             family = "binomial", weights = weight)
-
-
-#install.packages("pROC")
-library(pROC)
-
-
-# just number of conditions
-probabilities <-  predict(fit2, NewData=HC_df ,type = "response")
-predicted.classes <- ifelse(probabilities > 0.5, 1,0)
-
-#confusion matrix
-table(HC_df$Ex_rec, predicted.classes)
-#roc
-roc2 <- roc(response = HC_df$Ex_rec,
-               predictor = probabilities)
-
-ggroc(roc2, legacy.axes = TRUE, col = "red") +
-  labs(x = 'False-positive rate', y = 'True-positive rate',
-       title = 'ROC curve\nEx_rec ~ # Health Conditions + Covariates') +
-  annotate('text', x = .5, y = .5, label = paste0('AUC: ', round(auc(roc2), digits = 2)))
-
-
-both_df <- thesis_NHRVS |>
-  dplyr::select(
-    Ex_rec,
-             #Covariates
-             Age , College , White_Race  ,
-             Income_60k_plus , Combat_Veteran , 
-             TOTAL_TRAUMAS , BMI ,
-             #Physical Health Conditions
-             Athsma , Chron_pain , Diabetes, Hrt_atk , 
-             Hrt_dis , High_chol , High_bld_press , Osteoporosis , Stroke ,
-             #Mental Health conditions
-             AUD_Current , DUD_Current , MDD_Current , PTSD_Current , GAD_Current,
-             Total_HC,
-             # Data
-             weight)
-both_df <-na.omit(both_df)
-
-fit3<-glm(Ex_rec~
-             #Covariates
-             Age + College + White_Race  +
-             Income_60k_plus + Combat_Veteran + 
-             TOTAL_TRAUMAS + BMI +
-             #Physical Health Conditions
-             Athsma + Chron_pain + Diabetes+ Hrt_atk + 
-             Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke +
-             #Mental Health conditions
-             AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current +
-             Total_HC,
-             # Data
-             data =both_df,
-             # Specify type of regression
-             family="binomial",weights = weight)
-
-
-# just number of conditions
-probabilities3 <-  predict(fit3, NewData=Both_df ,type = "response")
-predicted.classes3 <- ifelse(probabilities3 > 0.5, 1,0)
-
-#confusion matrix
-table(HC_df$Ex_rec, predicted.classes3)
-#roc
-roc3 <- roc(response = both_df$Ex_rec,
-               predictor = probabilities3)
-
-ggroc(roc3, legacy.axes = TRUE) +
-  labs(x = 'False-positive rate', y = 'True-positive rate',
-       title = 'ROC curve\nEx_rec ~ # Health Conditions + Conditions +  Covariates') +
-  annotate('text', x = .5, y = .5, label = paste0('AUC: ', round(auc(roc3), digits = 2)))
-```
-
-predictive probabilities 
-```{r}
-
-HC_df <- thesis_NHRVS |>
-  dplyr::select(
-    #outcome
-    Ex_rec,
-    #covaraiates
-    Age,College,White_Race,Income_60k_plus,Combat_Veteran,TOTAL_TRAUMAS,BMI,  
-    #HC
-    Total_HC,
-    #weights
-    weight)
-  # ) |>
-  # mutate(
-  #   Ex_rec = as.factor(ifelse(Ex_rec == "Insufficient", 0,1))
-  # )
-HC_df <- na.omit(HC_df)
-library(caret)
-
-fit2 <- glm(relevel(Ex_rec,ref = "Sufficient")~
-             #Covariates
-             Age + College + White_Race  +
-             Income_60k_plus + Combat_Veteran + 
-             TOTAL_TRAUMAS + BMI + 
-             #number of health conditions
-             Total_HC,
-             # Data
-             data =HC_df,
-             # Specify weights
-             family = "binomial") #weights = weight)
-
-OR <- round(exp(cbind(coef(fit2), confint(fit2))),2)
-
-OR_fig <-paste0(OR[8,1], " [",OR[8,2], ",",OR[8,2], "]")
-
-HC_df2$prob <- predict(fit2, NewData=HC_df ,type = "response")
-HC_df2<- cbind(HC_df, predict(fit2, newdata = HC_df, type = "response",
-    se = TRUE))
-
-HC_df2 <- HC_df2 |>
-  mutate(
-    LL = fit - (1.96 * (se.fit),
-    UL = fit + (1.96 * se.fit)
-  )
-
-# just number of conditions
-ggplot(HC_df2, aes(x = Total_HC, y = fit)) + 
-  #geom_ribbon(aes(ymin = LL,
-    # ymax = UL), alpha = 0.2) + 
-  geom_smooth(size = 1) +
-  labs(x = '# of co-occuring health conditions', y = 'Predictive probability for insuficient activity',
-       title = 'Predictive Probabilities\nExercise guidelines ~ # Health Conditions +  Covariates') +
-  #annotate('text', x = 10, y = .6, label = paste0('OR: ', OR_fig)) +
-  theme_classic()
-
-
-
-
-```
-
-
-
-```{r}
-# Read in simulated data
-sim_dat <- read.csv('http://static.lib.virginia.edu/statlab/materials/data/roc_sim_dat.csv', header = T)
-
-# See a few rows
-sim_dat[c(1, 25, 75, 100), ]
-
-sim_dat
-
-# Use pROC calculate TPR/FPR across a range of classification thresholds
-sim_roc <- roc(response = sim_dat$actual_outcome,
-               predictor = sim_dat$predicted_prob_of_Yes,
-               levels = c('No', 'Yes'))
-# response: vector of actual outcomes
-# predictor: vector of probabilities, one for each observation
-# levels: response values to be taken as "No"/0/"Failure"/etc. and "Yes"/1/"Success"/etc., respectively
-
-# Plot ROC curve
-# - pROC::ggroc() prints the ROC curve using ggplot2; you can print the curve using base R graphics with pROC::plot.roc()
-# - legacy.axes = TRUE ensures that the x-axis is displayed as FPR from 0 to 1 as opposed to
-#     specificity (1-FPR) from 1 to 0
-ggroc(sim_roc, legacy.axes = TRUE) +
-  labs(x = 'False-positive rate', y = 'True-positive rate', title = 'Simulated ROC curve')
-
-
-
-
-
-
-
-
-roc(train.data$Ex_rec,
-             predicted.classes)
-
-\
-
-
-
-
-summary(test.data$Ex_rec)
-```
-
-
-
-### Export Tables to CSV
-```{r}
-write_csv(Ins_Mod, "~/Desktop/Coding/data/Ins_Mod.csv")
-write_csv(Ins_Act, "~/Desktop/Coding/data/Ins_Act.csv")
-write_csv(Act_Mod, "~/Desktop/Coding/data/Act_Mod.csv")
-```
-
-
-# Create Tables for Multinomial Logistic Regression Output 
-
-We have everything we need for our final table output!
-```{r,message=FALSE}
-#1. Import tables
-   r2_change <- read_csv("~/Desktop/Coding/data/R2change.csv")
-   cov.SF8_OR_tab <- read.csv("~/Desktop/Coding/data/SF8.cov_OR_tab.csv")
-   Ins_Mod <- read_csv("~/Desktop/Coding/data/Ins_Mod.csv")
-   Ins_Act <- read_csv("~/Desktop/Coding/data/Ins_Act.csv")
-   Act_Mod <- read_csv( "~/Desktop/Coding/data/Act_Mod.csv")
-```
-
-
-```{r}
-#2. Create dataframes to be merged.
-    OR_Table = data.frame(
-      Ins_Act$variable, Ins_Act$ci, Ins_Mod$ci, Act_Mod$ci,Act_Mod$r2_change
-      )
-    colnames(OR_Table) <- c("Variable","IvA_ODDS",
-                          "IvM_ODDS", "AvM_ODDS",
-                          "R2_Change")
-    
-#3. Create a block 3 row
-  Block_3 = cbind(
-    Variable = "Block 3: Health Conditions R^2 range = 0.032 - 0.052",
-    IvA_ODDS = NA,
-    IvM_ODDS = NA,
-    AvM_ODDS = NA,
-    R2_Change = NA
-  )
-
-#4. pull out values from covariates table
-  Cov_table = data.frame(
-    Full_OR_tab$variable,
-    Full_OR_tab$IvA_ODDS, 
-    Full_OR_tab$IvM_ODDS,
-    Full_OR_tab$AvM_ODDS
-  )
-  Cov_table$R2_Change = NA
-  colnames(Cov_table) <- c("Variable","IvA_ODDS",
-                          "IvM_ODDS", "AvM_ODDS",
-                          "R2_Change")
-
-#5. Merge all the data frames
-  OR_Table <- rbind(Cov_table,Block_3,OR_Table)
-
-#6. update R2 change df and add it to OR tab
-  r2_change = rbind(r2_change[1:6,],NA,r2_change[7:33,])
-  OR_Table <- cbind(OR_Table[,1:4],r2_change)
-  
-#6. Rename columns for table 
-  colnames(OR_Table) <- c("Variable","Insufficient vs Sufficient ORs",
-                          "Insufficient vs Moderate ORs", "Active vs Moderate ORs", "R^2 Change")
-  
-  
-#7. View Table
-    knitr::kable(OR_Table) %>%
-          kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
-
-#8 Export Table
-    write_csv(OR_Table,"~/Desktop/Coding/data/Thesis_OR_Table.csv")
-
-```
-
-```{r}
-
-```
-
-
-Multicolinearity Analysis
-```{r}
-library(tidyverse)
-library(dplyr)
-library(ggplot)
-library(ggcorrplot)
-
-thesis_NHRVS$Hrt_dis
-```
-
-
-```{r}
-#physical health conditions
-corr1 <- thesis_NHRVS |>
-  dplyr::select(Ex_3cat,Any_Disability, Age, College , Income_60k_plus, YN_work , BMI , MCS
-    )
-
-model.matrix(~0+., data=corr1) %>% 
-  cor(use="pairwise.complete.obs") %>% 
-  ggcorrplot(show.diag=FALSE, type="lower", lab=TRUE, lab_size=2)
-
-# mental health conditions
-corr2 <- thesis_NHRVS |>
-  dplyr::select(Ex_3cat,LT_MDD, Age, College , Income_60k_plus, YN_work , BMI , PCS
-    )
-
-model.matrix(~0+., data=corr2) %>% 
-  cor(use="pairwise.complete.obs") %>% 
-  ggcorrplot(show.diag=FALSE, type="lower", lab=TRUE, lab_size=2)
-
-```
+
+<!-- ```{r, results='hide'} -->
+<!-- #1.1 Run function -->
+<!-- result <- logRegress(mydata) -->
+
+<!-- #1.2 save results from function -->
+<!-- RW.Results<-result -->
+<!-- RSQ.o<-R.sq -->
+
+<!-- RW.Results <- result |> -->
+<!--   arrange(-Rescaled.RelWeight) |> -->
+<!--   mutate(Rescaled.RelWeight.percent = round((Rescaled.RelWeight*100),2), -->
+<!--          Raw.percent = round(Raw.RelWeight*100,4) -->
+<!--   ) -->
+<!-- # write_csv(RW.Results,"~/Downloads/RW.Results") -->
+
+<!-- #1.3 display results of relative weight analysis -->
+<!-- RW.Results -->
+<!-- ``` -->
+
+
+<!-- ```{r, results='hide'} -->
+<!-- #2 Use bootstrapping functions to obtain CI's for raw and rescaled weights -->
+
+<!-- #2.1 the boot function calls the logBootstrap and logBootstrap_adj function, which just pulls out the raw.relWeight and rescaled.relWeight at a given index -->
+
+<!-- mydata_B3 <- mydata -->
+
+<!-- #2.3 Set seed -->
+<!-- set.seed(1995) -->
+
+<!-- #2.4 bootstrap for raw weights CI -->
+<!-- logBoot_B3 <-boot(mydata_B3, # Data -->
+<!--               logBootstrap, # Statistic -->
+<!--               10000) # R / number of times -->
+
+<!--  <- tidy(logBoot_B3) -->
+
+<!-- # CI.Results_tidy <- tidy(logBoot_B3,conf.int=TRUE) -->
+<!-- numVar = NCOL(mydata_B3) -->
+<!-- mydata <- mydata -->
+<!-- logBoot <-logBoot_B3 -->
+<!-- # logBoot<-boot(mydata_B3, logBootstrap, 10000) -->
+
+<!-- ?boot.ci() -->
+
+<!-- logci<-boot.ci(logBoot,conf=0.95, type="bca") -->
+<!-- numVar = length(mydata) -->
+<!-- test2 <- runBoot(length(mydata[,2:numVar])) -->
+<!-- #df with CI -->
+<!-- CI.Result<<-data.frame(Variables=colnames(mydata[2:10]), CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5]) -->
+<!-- CI.Result -->
+<!-- write_csv(CI.Result, "/Users/troyh/Downloads/CI.Result") -->
+<!-- ``` -->
+
+
+<!-- ```{r, results='hide'} -->
+<!-- #rescaled CI -->
+<!-- logBoot_adj <-boot(mydata_B3, # Data -->
+<!--               logBootstrap_adj, # Statistic -->
+<!--               10000) # R / number of times -->
+
+<!-- numVar = NCOL(mydata_B3) -->
+<!-- mydata <- mydata -->
+<!-- logBoot <-logBoot_adj -->
+<!-- # logBoot<-boot(mydata_B3, logBootstrap, 10000) -->
+<!-- logci<-boot.ci(logBoot,conf=0.95, type="bca") -->
+<!-- numVar = length(mydata) -->
+<!-- test2 <- runBoot(length(mydata[,2:numVar])) -->
+<!-- test2 -->
+
+<!-- test -->
+
+
+
+
+<!-- #df with CI -->
+<!-- CI.Result.res<<-data.frame(Variables=colnames(mydata[2:10]), CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5]) -->
+<!-- CI.Result.res -->
+<!-- write_csv(CI.Result.res, "/Users/troyh/Downloads/CI.Result") -->
+<!-- ``` -->
+
+
+<!-- ```{r, results='hide'} -->
+<!-- #Bootstrapped Confidence interval tests of Significance -->
+<!-- #Please be patient -- This can take a few minutes to run -->
+<!-- randVar<-rnorm(length(mydata[,1]),0,1) -->
+<!-- randData<-cbind(mydata,randVar) -->
+<!-- logRBoot<-boot(randData,logBootrand, 10000) -->
+<!-- logRci<-boot.ci(logRBoot,conf=0.95, type="bca") -->
+<!-- runRBoot(length(randData[,2:(numVar-1)])) -->
+<!-- CI.Significance<-CIresult -->
+
+<!-- ``` -->
+
+
+<!-- ```{r, results='hide'} -->
+<!-- #display results -->
+
+<!-- #Rsq.O - logistic analog to Rsq -->
+<!-- RSQ.o -->
+
+<!-- #The Raw and Rescaled Weights -->
+<!-- RW.Results -->
+
+<!-- #BCa Confidence Intervals around the raw weights -->
+<!-- colnames(CI.Result) <- paste0(colnames(CI.Result),"_Raw") -->
+<!-- CI.Result -->
+
+<!-- #Confidence intervals -->
+<!-- colnames(CI.Result.res) <- paste0(colnames(CI.Result.res),"_Rescale") -->
+<!-- CI.Result.res -->
+<!-- #If Zero is not included, Weight is Significant -->
+
+<!-- #left join bootstraped results to RW.Results df -->
+<!-- RW.Results -->
+<!-- RW.Results <- left_join(RW.Results,CI.Result, by = join_by(Variables == Variables_Raw)) -->
+<!-- RW.Results <- left_join(RW.Results,CI.Result.res, by = join_by(Variables == Variables_Rescale)) -->
+
+<!-- #final DF -->
+<!-- RW.Results -->
+<!-- ``` -->
+
+<!-- bar plots of results -->
+<!-- ```{r, results='hide'} -->
+<!-- #create new df with CIs and values as % -->
+<!-- wt_df <- RW.Results |> -->
+<!--   mutate( -->
+<!--   raw.CI = paste0("[", round(CI.Lower.Bound_Raw*100,2), ", ",  -->
+<!--                   round(CI.Upper.Bound_Raw*100,2), "]"), -->
+<!--   raw.CI.low = round(CI.Lower.Bound_Raw*100,2), -->
+<!--   raw.CI.high = round(CI.Upper.Bound_Raw*100,2), -->
+<!--   res.CI = paste0("[", round(CI.Lower.Bound_Rescale*100,2), ", ",  -->
+<!--                   round(CI.Upper.Bound_Rescale*100,2), "]"), -->
+<!--   res.CI.low = round(CI.Lower.Bound_Rescale*100,2), -->
+<!--   res.CI.high = round(CI.Upper.Bound_Rescale*100,2), -->
+<!--   order = NA, -->
+<!--   Raw.wt.text = round(Raw.percent,2), -->
+<!--   Res.wt.text = round(Rescaled.RelWeight.percent,2), -->
+<!--   raw.weight = (CI.Lower.Bound_Raw + CI.Upper.Bound_Raw)/2, -->
+<!--   res.weight = (CI.Lower.Bound_Rescale*100 + CI.Upper.Bound_Rescale*100)/2, -->
+<!--   ) -->
+<!-- wt_df -->
+<!-- ``` -->
+
+
+<!-- ```{r, results='hide'} -->
+<!-- #assign variables and put them at the top -->
+<!--   wt_df[10,]   = NA   -->
+<!--   wt_df[10,1]  = "Variable" -->
+<!--   wt_df[10,10] = "95% CI" -->
+<!--   wt_df[10,13] = "95% CI" -->
+<!--   wt_df[10,17]  = "R2o (%)"   -->
+<!--   wt_df[10,18]  = "Rescaled R2o (%)"  -->
+
+<!--   wt_df$order  = c(seq(2,10,1),1) -->
+<!--   wt_df <- arrange(wt_df,order) -->
+
+<!-- wt_df -->
+<!-- write.csv() -->
+
+<!-- ?reorder() -->
+<!-- ``` -->
+
+<!-- code -->
+<!-- ```{r} -->
+<!-- # # plot raw R^2 values w/ 95% CI -->
+<!-- # R2_plot <-  -->
+<!-- #   ggplot2::ggplot(wt_df, aes(x=reorder(Variables,-order),y=Raw.percent)) + -->
+<!-- #   # geom_hline(yintercept = 1,linetype="dashed",alpha = .25) + -->
+<!-- #   # geom_hline(yintercept = .5,linetype="dashed",alpha = .25) + -->
+<!-- #   geom_bar(stat = "identity", color = "Black", width = .75, fill = "#91c3e6" ) + -->
+<!-- #   geom_errorbar(aes(ymin=raw.CI.low, ymax=raw.CI.high,width =.3, show.legend = FALSE)) + -->
+<!-- #   labs( -->
+<!-- #     #title = "     Varaince Explained (%) Of Phsyical Activity by Predictors", -->
+<!-- #     subtitle = "      Varaince Explained (%) Of Phsyical Activity by Predictors", -->
+<!-- #   ) + -->
+<!-- #   theme_classic() + -->
+<!-- #   xlab('Variable')+ -->
+<!-- #   ylab('R2o in physical activity (%)')+ -->
+<!-- #   ylim(0,2.5)+ -->
+<!-- #   coord_flip() + -->
+<!-- #   theme(axis.line.y = element_blank(), -->
+<!-- #         axis.ticks.y= element_blank(), -->
+<!-- #         axis.text.y= element_blank(), -->
+<!-- #         axis.title.y= element_blank()) -->
+<!-- #  -->
+<!-- # R2_plot -->
+<!-- #  -->
+<!-- # #plot table left of text -->
+<!-- # wt_df$Variables = c("Variable","Obesity","Some College","Diabetes", "Age",  -->
+<!-- #                     "Income ≥ 60k", "Asthma", "Probable Current MDD", -->
+<!-- #                     "Probable Current GAD", "Probable Current DUD" -->
+<!-- #                     ) -->
+<!-- #  -->
+<!-- #  -->
+<!-- #  -->
+<!-- # R2_text <-  -->
+<!-- #   wt_df |> -->
+<!-- #   ggplot(aes(y = reorder(Variables, -order))) + -->
+<!-- #   geom_text(aes(x = 0, label = Variables), hjust = 0,  -->
+<!-- #         fontface = ifelse(wt_df$Variables == "Variable", "bold","plain")) + -->
+<!-- #   geom_text(aes(x = 1.2, label = Raw.wt.text), -->
+<!-- #         hjust = 0, -->
+<!-- #         fontface = ifelse(wt_df$Raw.wt.text == "R2o (%)", "bold","plain")) + -->
+<!-- #   geom_text(aes(x = 1.7, label = raw.CI), -->
+<!-- #         hjust = 0, -->
+<!-- #         fontface = ifelse(wt_df$raw.CI == "95% CI", "bold","plain")) + -->
+<!-- #   theme_void() +      -->
+<!-- #   coord_cartesian(ylim = c(1,length(wt_df$Variables)), xlim = c(0, 4)) -->
+<!-- #    -->
+<!-- # library("patchwork") -->
+<!-- #  -->
+<!-- # layout <- c( -->
+<!-- #   patchwork::area(t = 0, l = 0, b = 30, r = 30), -->
+<!-- #   patchwork::area(t = 0, l = 18, b = 30, r = 35) -->
+<!-- # ) -->
+<!-- #  -->
+<!-- # R2_text + R2_plot + plot_layout(design = layout) -->
+<!-- #  -->
+
+<!-- ``` -->
+
+<!-- ### Part 5 barplots -->
+
+<!-- Scaled weight Barplot  -->
+<!-- ```{r, results='hide'} -->
+<!-- # wt_plot <-  -->
+<!--   ggplot2::ggplot(wt_df, aes(x=stats::reorder(Variables,-order),y=Rescaled.RelWeight.percent)) + -->
+<!--   geom_bar(stat = "identity", color = "Black", width = .75, fill = "#91c3e6" )+ -->
+<!--   geom_errorbar(aes(ymin=res.CI.low, ymax=res.CI.high,width =.3, show.legend = FALSE)) + -->
+<!--   labs( -->
+<!--     # title = "     Relative Weight (%) Of Predictors On Physical Activity", -->
+<!--     subtitle ="Relative Weight (%) Of Predictors On Physical Activity"  -->
+<!--       #"      RIA with 10000 bootstrapped confidence intervals" -->
+<!--   ) + -->
+<!--   theme_classic() + -->
+<!--   xlab('Variable')+ -->
+<!--   ylab('Weight (%) of variance (R2o) in physical activity')+ -->
+<!--   ylim(0,50)+ -->
+<!--   # geom_text(aes(label = wt_text), vjust =.5, hjust = -.1, color = "black")+ -->
+<!--   coord_flip()  + -->
+<!--     theme(axis.line.y = element_blank(), -->
+<!--         axis.ticks.y= element_blank(), -->
+<!--         axis.text.y= element_blank(), -->
+<!--         axis.title.y= element_blank()) -->
+
+<!-- wt_text <-  -->
+<!--   wt_df |> -->
+<!--   ggplot(aes(y = reorder(Variables, -order))) + -->
+<!--   geom_text(aes(x = 0, label = Variables), hjust = 0,  -->
+<!--         fontface = ifelse(wt_df$Variables == "Variable", "bold","plain")) + -->
+<!--   geom_text(aes(x = 1.1, label = Res.wt.text), -->
+<!--         hjust = 0, -->
+<!--         fontface = ifelse(wt_df$Res.wt.text == "Scaled Weight (%)", "bold","plain")) + -->
+<!--   geom_text(aes(x = 2, label = rescale.CI), -->
+<!--         hjust = 0, -->
+<!--         fontface = ifelse(wt_df$rescale.CI == "95% CI", "bold","plain")) + -->
+<!--   theme_void() +      -->
+<!--   coord_cartesian(ylim = c(1,length(wt_df$Variables)), xlim = c(0, 4)) -->
+
+<!-- library("patchwork") -->
+
+<!-- layout <- c( -->
+<!--   patchwork::area(t = 0, l = 0, b = 30, r = 30), -->
+<!--   patchwork::area(t = 0, l = 21, b = 30, r = 40) -->
+<!-- ) -->
+
+<!-- wt_text + wt_plot + plot_layout(design = layout) -->
+<!-- ``` -->
+
+
+<!-- ```{r, results='hide'} -->
+<!-- wt_df <- RW.Results |> -->
+<!--   mutate( -->
+<!--   raw.CI = paste0("[", round(conf.low_Raw.CI*100,2), ", ",  -->
+<!--                   round(conf.high_Raw.CI*100,2), "]"), -->
+<!--   raw.CI.low = round(conf.low_Raw.CI*100,2), -->
+<!--   raw.CI.high = round(conf.high_Raw.CI*100,2), -->
+<!--   rescale.CI = paste0("[", round(conf.low_Rescale.CI*100,2), ", ",  -->
+<!--                       round(conf.high_Rescale.CI*100,2), "]"), -->
+<!--   rescale.CI.low = round(conf.low_Rescale.CI*100,2), -->
+<!--   rescale.CI.high = round(conf.high_Rescale.CI*100,2), -->
+<!--   order = NA, -->
+<!--   Raw.wt.text = round(Raw.percent,2), -->
+<!--   Res.wt.text = round(Rescaled.RelWeight.percent,2) -->
+<!--   ) -->
+<!-- ``` -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- using varImp from {caret} we can examine the relative importance of each variable -->
+<!-- ### Binary outcome -->
+<!-- ```{r} -->
+<!-- # library(caret) -->
+<!-- # #https://topepo.github.io/caret/variable-importance.html -->
+<!-- #  -->
+<!-- # V <- varImp(MHC_Reg, Scale=TRUE) -->
+<!-- #  -->
+<!-- # V <- V |> -->
+<!-- #   mutate( -->
+<!-- #     wt_scaled = round((Overall/sum(Overall))*100,2), -->
+<!-- #   variable =  -->
+<!-- #     c("Age", "College", "White_Race", "Income_60k_plus", "Combat_Veteran",  -->
+<!-- #       "TOTAL_TRAUMAS", "BMI", "Athsma", "Chron_pain", "Diabetes", "Hrt_atk",  -->
+<!-- #       "Hrt_dis", -->
+<!-- #       "High_chol", "High_bld_press", "Osteoporosis", "Stroke", "AUD_Current",  -->
+<!-- #       "DUD_Current", "MDD_Current", "PTSD_Current","GAD_Current") -->
+<!-- #   ) -->
+<!-- #  -->
+<!-- # V <- left_join(V,Full_OR_tab, by= join_by(variable==variable)) -->
+<!-- #  -->
+<!-- #  -->
+<!-- # # For classification, ROC curve analysis is conducted on each predictor. For two class problems, a series of cutoffs is applied to the predictor data to predict the class. The sensitivity and specificity are computed for each cutoff and the ROC curve is computed. The trapezoidal rule is used to compute the area under the ROC curve. This area is used as the measure of variable importance -->
+<!-- #  -->
+<!-- # L <- ggplot2::ggplot(V, aes(x=reorder(variable,wt_scaled), y=wt_scaled)) + -->
+<!-- # geom_point( color="blue", size=4, alpha=0.6)+ -->
+<!-- # geom_segment( aes(x=variable, xend=variable, y=0, yend=wt_scaled),  -->
+<!-- # color='skyblue') + -->
+<!-- # xlab('Variable')+ -->
+<!-- # ylab('Overall Importance (%) explained')+ -->
+<!-- # theme_classic() + -->
+<!-- # coord_flip()  -->
+<!-- #  -->
+<!-- # Wald_plot  <- wt_df |> -->
+<!-- #       ggplot() + -->
+<!-- #         geom_text(aes(x = 0, y = reorder(Variables,Raw.percent), label = Wald), hjust = 0) + -->
+<!-- #         theme_void()  -->
+<!-- #         # coord_cartesian(ylim = c(1,length(FP_dep$Variable))) -->
+<!-- #        -->
+<!-- # library(patchwork) -->
+<!-- # layout <- c( -->
+<!-- #   patchwork::area(t = 0, l = 0, b = 30, r = 21), -->
+<!-- #   patchwork::area(t = 0, l = 16, b = 30, r = 30) -->
+<!-- # ) -->
+<!-- #  -->
+<!-- # L + Wald_plot + plot_layout(design = layout) -->
+<!-- ``` -->
+
+<!-- ### relative weight analysis -->
+<!-- ```{r} -->
+<!-- install.packages('devtools') -->
+<!-- devtools::install_github("martinctc/rwa") -->
+<!-- #https://langtest.jp/shiny/rwa/ -->
+<!-- library(rwa) -->
+
+<!-- RWA <- mydata_B3 %>% -->
+<!--   rwa(outcome = "Ex_rec", -->
+<!--       predictors =  -->
+<!--         c("Age", 'College',"White_Race", "Income_60k_plus", "Combat_Veteran",  -->
+<!--       "TOTAL_TRAUMAS", "Obesity", "Athsma", "Chron_pain", "Diabetes", "Hrt_atk",  -->
+<!--       "Hrt_dis", -->
+<!--       "High_chol", "High_bld_press", "Osteoporosis", "Stroke", "AUD_Current",  -->
+<!--       "DUD_Current", "MDD_Current", "PTSD_Current","GAD_Current"), -->
+<!--       applysigns = TRUE, -->
+<!--       plot = TRUE) -->
+
+<!-- rwa::plot_rwa(RWA$result) -->
+<!-- RWA$result -->
+
+
+<!-- # RWA_plot <-  -->
+<!--   ggplot2::ggplot(RWA$result, aes(x=reorder(Variables,Rescaled.RelWeight), y=Rescaled.RelWeight)) + -->
+<!-- geom_point( color="blue", size=4, alpha=0.6)+ -->
+<!-- geom_segment( aes(x=Variables, xend=Variables, y=0, yend=Rescaled.RelWeight),  -->
+<!-- color='skyblue') + -->
+<!-- xlab('Variable')+ -->
+<!-- ylab('Overall Importance (%) explained')+ -->
+<!-- theme_classic() + -->
+<!-- coord_flip()  -->
+<!-- ``` -->
+
+<!-- RElative importance analysis -->
+<!-- ```{r} -->
+<!-- # library(relaimpo) -->
+<!-- #  -->
+<!-- #  -->
+<!-- #   -->
+<!-- # fit1 <- glm(MET_min~ -->
+<!-- #              #Covariates -->
+<!-- #              Age + College + White_Race  + -->
+<!-- #              Income_60k_plus + Combat_Veteran +  -->
+<!-- #              TOTAL_TRAUMAS + BMI +  -->
+<!-- #              #Physical Health Conditions -->
+<!-- #              Athsma + Chron_pain + Diabetes+ Hrt_atk + -->
+<!-- #              Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke + -->
+<!-- #              #Mental Health conditions -->
+<!-- #              AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current, -->
+<!-- #              # Data -->
+<!-- #              data =thesis_NHRVS, -->
+<!-- #              # Specify weights -->
+<!-- #              weights = weight) -->
+<!-- #  -->
+<!-- # relimp <- calc.relimp(fit1, type = "lmg", importance = TRUE) -->
+<!-- # calc.relimp -->
+<!-- # ?calc.relimp() -->
+<!-- #  -->
+<!-- # # View the structure of the relimp object -->
+<!-- # str(relimp) -->
+<!-- #   -->
+<!-- # # Plot the relative importance of predictors -->
+<!-- # plot(relimp) -->
+<!-- #  -->
+<!-- # #order of which variables are important -->
+<!-- #  -->
+<!-- #  -->
+<!-- # impo_values<- unlist(relimp@lmg) -->
+<!-- # attri <- attributes(impo_values) -->
+<!-- # impo_order<- unlist(relimp@lmg.rank) -->
+<!-- #  -->
+<!-- # impo_df <- data.frame( -->
+<!-- #   cbind( -->
+<!-- #     vars = attri$names, -->
+<!-- #     round(impo_values*100,2), -->
+<!-- #     impo_order -->
+<!-- #   ) -->
+<!-- # ) -->
+<!-- # colnames(impo_df) <- c("vars","R2","Order") -->
+<!-- #  -->
+<!-- # impo_df$R2 <- as.numeric(impo_df$R2) -->
+<!-- # impo_df$Order <- as.numeric(impo_df$Order) -->
+<!-- #  -->
+<!-- # # ####### Bootstraped relimp -->
+<!-- # #  -->
+<!-- # # boot_rel <- boot.relimp(fit, type = "lmg",  -->
+<!-- # #                         nboot = 10) -->
+<!-- # #   -->
+<!-- # # boot_eval <- booteval.relimp(boot_rel) -->
+<!-- # # plot(boot_eval) -->
+<!-- # #  -->
+<!-- # #  -->
+<!-- # #  -->
+<!-- #  -->
+<!-- # ggplot2::ggplot(impo_df, aes(x=reorder(vars,-Order),y=R2), -->
+<!-- #                 ) + -->
+<!-- #   geom_hline(yintercept = 1,linetype="dashed",alpha = .25) + -->
+<!-- #   geom_hline(yintercept = .5,linetype="dashed",alpha = .25) + -->
+<!-- #   geom_bar(stat = "identity", color = "Black") + -->
+<!-- #   ggtitle("% Varaince (i.e., R^2) explaiend by predictors of Physical Activity") + -->
+<!-- #   theme_classic() + -->
+<!-- #   xlab('Variable')+ -->
+<!-- #   ylab('% of Response Variance')+ -->
+<!-- #   ylim(0,1.5)+ -->
+<!-- #   geom_text(aes(label = R2), vjust =.5, hjust = -.5, color = "black")+ -->
+<!-- #   coord_flip()  -->
+<!-- #                -->
+<!-- # ggplot2::ggplot(V, aes(x=reorder(rownames(V),Overall), y=Overall)) + -->
+<!-- # geom_point( color="blue", size=4, alpha=0.6)+ -->
+<!-- # geom_segment( aes(x=rownames(V), xend=rownames(V), y=0, yend=Overall),  -->
+<!-- # color='skyblue') + -->
+<!-- # xlab('Variable')+ -->
+<!-- # ylab('Overall Importance')+ -->
+<!-- # theme_light() + -->
+<!-- # coord_flip()  -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- install.packages("bruceR") -->
+<!-- library(bruceR) -->
+
+<!-- mod_NHRVS <- thesis_NHRVS |> -->
+<!--   mutate( -->
+<!--     GAD_Current = recode(GAD_Current, -->
+<!--       "0" = "1", -->
+<!--       "1" = "2" -->
+<!--     ), -->
+<!--     Diabetes = recode(Diabetes, -->
+<!--       "0" = "1", -->
+<!--       "1" = "2" -->
+<!--     ) -->
+<!--   ) -->
+
+<!-- str(mod_NHRVS$Diabetes) -->
+
+<!-- thesis_NHRVS$High_bld_press -->
+
+<!-- attri$names -->
+
+<!-- ###MCS -->
+<!-- #insignificant moderation -->
+<!-- PROCESS(thesis_NHRVS, -->
+<!--   x="High_bld_press", y="Ex_rec", mods = "MCS", covs = c("Age", "College", "White_Race", -->
+<!--   "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI")  -->
+<!-- ) -->
+
+<!-- #nonsignficiant -->
+<!-- PROCESS(thesis_NHRVS, -->
+<!--   x="Diabetes", y="Ex_rec", mods = "MCS", covs = c("Age", "College", "White_Race", -->
+<!--   "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI")  -->
+<!-- ) -->
+
+<!-- #Significant -->
+<!-- PROCESS(thesis_NHRVS, -->
+<!--   x="High_chol", y="Ex_rec", mods = "MCS", covs = c("Age", "College", "White_Race", -->
+<!--   "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI")  -->
+<!-- ) -->
+
+<!-- #Significant -->
+<!-- PROCESS(thesis_NHRVS, -->
+<!--   x="GAD_Current", y="Ex_rec", mods = "PCS", covs = c("Age", "College", "White_Race", -->
+<!--   "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI")  -->
+<!-- ) -->
+
+<!-- #nonsignficiant -->
+<!-- PROCESS(thesis_NHRVS, -->
+<!--   x="Diabetes", y="Ex_rec", mods = "MCS", covs = c("Age", "College", "White_Race", -->
+<!--   "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI")   -->
+<!-- ) -->
+<!-- ``` -->
+
+<!-- ## Interactions of health conditions on physical activity recomendations -->
+<!-- ```{r} -->
+<!-- # library(bruceR) -->
+<!-- # # assign a vector of covariates to be used in analysis -->
+<!-- # covs = c("Age", "College", "White_Race", -->
+<!-- #   "Income_60k_plus", "Combat_Veteran", "TOTAL_TRAUMAS", "BMI") -->
+<!-- #  -->
+<!-- # ##### Diabetes -->
+<!-- # PROCESS(thesis_NHRVS, # Data -->
+<!-- #   x="Diabetes",  # Health conditoin -->
+<!-- #   mods = "GAD_Current",  # Moderator -->
+<!-- #   y="Ex_rec", # outcome variable -->
+<!-- #   covs = covs) # covariates -->
+<!-- #  -->
+<!-- # PROCESS(thesis_NHRVS, -->
+<!-- #   x="Diabetes", mods = "MDD_Current", -->
+<!-- #   y="Ex_rec", -->
+<!-- #   covs = covs) -->
+<!-- #  -->
+<!-- # PROCESS(thesis_NHRVS, -->
+<!-- #   x="Diabetes", mods = "DUD_Current", -->
+<!-- #   y="Ex_rec", -->
+<!-- #   covs = covs) -->
+<!-- #  -->
+<!-- # #### Asthma -->
+<!-- # PROCESS(thesis_NHRVS, -->
+<!-- #   x="Athsma", mods = "Total_HC", -->
+<!-- #   y="Ex_rec", -->
+<!-- #   covs = covs) -->
+<!-- #  -->
+<!-- # ### Osteoporosis -->
+<!-- #  -->
+<!-- # PROCESS(thesis_NHRVS, -->
+<!-- #   x="Osteoporosis", mods = "Total_HC", -->
+<!-- #   y="Ex_rec", -->
+<!-- #   covs = covs) -->
+<!-- #  -->
+<!-- # ### HRT Attack -->
+<!-- #  -->
+<!-- # PROCESS(thesis_NHRVS, -->
+<!-- #   x="Hrt_atk", mods = "Total_HC", -->
+<!-- #   y="Ex_rec", -->
+<!-- #   covs = covs) -->
+<!-- #  -->
+<!-- # ### High cholesterol -->
+<!-- #  -->
+<!-- # PROCESS(thesis_NHRVS, -->
+<!-- #   x="High_chol", mods = "Total_HC", -->
+<!-- #   y="Ex_rec", -->
+<!-- #   covs = covs) -->
+<!-- #  -->
+<!-- # PROCESS(thesis_NHRVS, -->
+<!-- #   x="GAD_Current" , # Health condition -->
+<!-- #   mods = "Total_HC", # moderator -->
+<!-- #   y="Ex_rec", # outcome variable -->
+<!-- #   covs = covs) -->
+<!-- #  -->
+<!-- # PROCESS(thesis_NHRVS, -->
+<!-- #   x="MDD_Current", mods = "Total_HC", -->
+<!-- #   y="Ex_rec", -->
+<!-- #   covs = covs) -->
+<!-- #  -->
+<!-- # PROCESS(thesis_NHRVS, -->
+<!-- #   x="Stroke", mods = "Total_HC", -->
+<!-- #   y="Ex_rec", -->
+<!-- #   covs = covs) -->
+<!-- ``` -->
+
+<!-- https://www.appsilon.com/post/r-logistic-regression -->
+<!-- ROC. vs AUC -->
+<!-- ```{r} -->
+<!-- library('pROC') -->
+<!-- Reg_df <- thesis_NHRVS |> -->
+<!--   dplyr::select( -->
+<!--     Ex_rec, -->
+<!--              #Covariates -->
+<!--              Age , College , White_Race  , -->
+<!--              Income_60k_plus , Combat_Veteran ,  -->
+<!--              TOTAL_TRAUMAS , BMI , -->
+<!--              #Physical Health Conditions -->
+<!--              Athsma , Chron_pain , Diabetes, Hrt_atk ,  -->
+<!--              Hrt_dis , High_chol , High_bld_press , Osteoporosis , Stroke , -->
+<!--              #Mental Health conditions -->
+<!--              AUD_Current , DUD_Current , MDD_Current , PTSD_Current , GAD_Current, -->
+<!--              # Data -->
+<!--              weight) -->
+<!-- Reg_df <-na.omit(Reg_df) -->
+
+<!-- fit1<-glm(Ex_rec~ -->
+<!--              #Covariates -->
+<!--              Age + College + White_Race  + -->
+<!--              Income_60k_plus + Combat_Veteran +  -->
+<!--              TOTAL_TRAUMAS + BMI + -->
+<!--              #Physical Health Conditions -->
+<!--              Athsma + Chron_pain + Diabetes+ Hrt_atk +  -->
+<!--              Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke + -->
+<!--              #Mental Health conditions -->
+<!--              AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current, -->
+<!--              # Data -->
+<!--              data =Reg_df, -->
+<!--              # Specify type of regression -->
+<!--              family="binomial",weights = weight) -->
+
+
+<!-- # just number of conditions -->
+<!-- probabilities <-  predict(fit1, NewData=Reg_df ,type = "response") -->
+<!-- predicted.classes <- ifelse(probabilities > 0.5, 1,0) -->
+
+<!-- #confusion matrix -->
+<!-- # table(HC_df$Ex_rec, predicted.classes) -->
+<!-- #roc -->
+<!-- roc1 <- roc(response = Reg_df$Ex_rec, -->
+<!--                predictor = probabilities) -->
+
+<!-- ggroc(roc1, legacy.axes = TRUE) + -->
+<!--   labs(x = 'False-positive rate', y = 'True-positive rate', -->
+<!--        title = 'ROC curve\nEx_rec ~ # Health Conditions + Covariates') + -->
+<!--   annotate('text', x = .5, y = .5, label = paste0('AUC: ', round(auc(roc1), digits = 2))) -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- #just number of conditions -->
+
+<!-- HC_df <- thesis_NHRVS |> -->
+<!--   dplyr::select( -->
+<!--     #outcome -->
+<!--     Ex_rec, -->
+<!--     #covaraiates -->
+<!--     Age,College,White_Race,Income_60k_plus,Combat_Veteran,TOTAL_TRAUMAS,BMI,   -->
+<!--     #HC -->
+<!--     Total_HC, -->
+<!--     #weights -->
+<!--     weight -->
+<!--   )  -->
+
+<!-- HC_df <- na.omit(HC_df) -->
+<!-- library(caret) -->
+
+
+<!-- fit2 <- glm(Ex_rec~ -->
+<!--              #Covariates -->
+<!--              Age + College + White_Race  + -->
+<!--              Income_60k_plus + Combat_Veteran +  -->
+<!--              TOTAL_TRAUMAS + BMI +  -->
+<!--              #number of health conditions -->
+<!--              Total_HC, -->
+<!--              # Data -->
+<!--              data =HC_df, -->
+<!--              # Specify weights -->
+<!--              family = "binomial", weights = weight) -->
+
+
+<!-- #install.packages("pROC") -->
+<!-- library(pROC) -->
+
+
+<!-- # just number of conditions -->
+<!-- probabilities <-  predict(fit2, NewData=HC_df ,type = "response") -->
+<!-- predicted.classes <- ifelse(probabilities > 0.5, 1,0) -->
+
+<!-- #confusion matrix -->
+<!-- table(HC_df$Ex_rec, predicted.classes) -->
+<!-- #roc -->
+<!-- roc2 <- roc(response = HC_df$Ex_rec, -->
+<!--                predictor = probabilities) -->
+
+<!-- ggroc(roc2, legacy.axes = TRUE, col = "red") + -->
+<!--   labs(x = 'False-positive rate', y = 'True-positive rate', -->
+<!--        title = 'ROC curve\nEx_rec ~ # Health Conditions + Covariates') + -->
+<!--   annotate('text', x = .5, y = .5, label = paste0('AUC: ', round(auc(roc2), digits = 2))) -->
+
+
+<!-- both_df <- thesis_NHRVS |> -->
+<!--   dplyr::select( -->
+<!--     Ex_rec, -->
+<!--              #Covariates -->
+<!--              Age , College , White_Race  , -->
+<!--              Income_60k_plus , Combat_Veteran ,  -->
+<!--              TOTAL_TRAUMAS , BMI , -->
+<!--              #Physical Health Conditions -->
+<!--              Athsma , Chron_pain , Diabetes, Hrt_atk ,  -->
+<!--              Hrt_dis , High_chol , High_bld_press , Osteoporosis , Stroke , -->
+<!--              #Mental Health conditions -->
+<!--              AUD_Current , DUD_Current , MDD_Current , PTSD_Current , GAD_Current, -->
+<!--              Total_HC, -->
+<!--              # Data -->
+<!--              weight) -->
+<!-- both_df <-na.omit(both_df) -->
+
+<!-- fit3<-glm(Ex_rec~ -->
+<!--              #Covariates -->
+<!--              Age + College + White_Race  + -->
+<!--              Income_60k_plus + Combat_Veteran +  -->
+<!--              TOTAL_TRAUMAS + BMI + -->
+<!--              #Physical Health Conditions -->
+<!--              Athsma + Chron_pain + Diabetes+ Hrt_atk +  -->
+<!--              Hrt_dis + High_chol + High_bld_press + Osteoporosis + Stroke + -->
+<!--              #Mental Health conditions -->
+<!--              AUD_Current + DUD_Current + MDD_Current + PTSD_Current + GAD_Current + -->
+<!--              Total_HC, -->
+<!--              # Data -->
+<!--              data =both_df, -->
+<!--              # Specify type of regression -->
+<!--              family="binomial",weights = weight) -->
+
+
+<!-- # just number of conditions -->
+<!-- probabilities3 <-  predict(fit3, NewData=Both_df ,type = "response") -->
+<!-- predicted.classes3 <- ifelse(probabilities3 > 0.5, 1,0) -->
+
+<!-- #confusion matrix -->
+<!-- table(HC_df$Ex_rec, predicted.classes3) -->
+<!-- #roc -->
+<!-- roc3 <- roc(response = both_df$Ex_rec, -->
+<!--                predictor = probabilities3) -->
+
+<!-- ggroc(roc3, legacy.axes = TRUE) + -->
+<!--   labs(x = 'False-positive rate', y = 'True-positive rate', -->
+<!--        title = 'ROC curve\nEx_rec ~ # Health Conditions + Conditions +  Covariates') + -->
+<!--   annotate('text', x = .5, y = .5, label = paste0('AUC: ', round(auc(roc3), digits = 2))) -->
+<!-- ``` -->
+
+<!-- predictive probabilities  -->
+<!-- ```{r} -->
+
+<!-- HC_df <- thesis_NHRVS |> -->
+<!--   dplyr::select( -->
+<!--     #outcome -->
+<!--     Ex_rec, -->
+<!--     #covaraiates -->
+<!--     Age,College,White_Race,Income_60k_plus,Combat_Veteran,TOTAL_TRAUMAS,BMI,   -->
+<!--     #HC -->
+<!--     Total_HC, -->
+<!--     #weights -->
+<!--     weight) -->
+<!--   # ) |> -->
+<!--   # mutate( -->
+<!--   #   Ex_rec = as.factor(ifelse(Ex_rec == "Insufficient", 0,1)) -->
+<!--   # ) -->
+<!-- HC_df <- na.omit(HC_df) -->
+<!-- library(caret) -->
+
+<!-- fit2 <- glm(relevel(Ex_rec,ref = "Sufficient")~ -->
+<!--              #Covariates -->
+<!--              Age + College + White_Race  + -->
+<!--              Income_60k_plus + Combat_Veteran +  -->
+<!--              TOTAL_TRAUMAS + BMI +  -->
+<!--              #number of health conditions -->
+<!--              Total_HC, -->
+<!--              # Data -->
+<!--              data =HC_df, -->
+<!--              # Specify weights -->
+<!--              family = "binomial") #weights = weight) -->
+
+<!-- OR <- round(exp(cbind(coef(fit2), confint(fit2))),2) -->
+
+<!-- OR_fig <-paste0(OR[8,1], " [",OR[8,2], ",",OR[8,2], "]") -->
+
+<!-- HC_df2$prob <- predict(fit2, NewData=HC_df ,type = "response") -->
+<!-- HC_df2<- cbind(HC_df, predict(fit2, newdata = HC_df, type = "response", -->
+<!--     se = TRUE)) -->
+
+<!-- HC_df2 <- HC_df2 |> -->
+<!--   mutate( -->
+<!--     LL = fit - (1.96 * (se.fit), -->
+<!--     UL = fit + (1.96 * se.fit) -->
+<!--   ) -->
+
+<!-- # just number of conditions -->
+<!-- ggplot(HC_df2, aes(x = Total_HC, y = fit)) +  -->
+<!--   #geom_ribbon(aes(ymin = LL, -->
+<!--     # ymax = UL), alpha = 0.2) +  -->
+<!--   geom_smooth(size = 1) + -->
+<!--   labs(x = '# of co-occuring health conditions', y = 'Predictive probability for insuficient activity', -->
+<!--        title = 'Predictive Probabilities\nExercise guidelines ~ # Health Conditions +  Covariates') + -->
+<!--   #annotate('text', x = 10, y = .6, label = paste0('OR: ', OR_fig)) + -->
+<!--   theme_classic() -->
+
+
+
+
+<!-- ``` -->
+
+
+
+<!-- ```{r} -->
+<!-- # Read in simulated data -->
+<!-- sim_dat <- read.csv('http://static.lib.virginia.edu/statlab/materials/data/roc_sim_dat.csv', header = T) -->
+
+<!-- # See a few rows -->
+<!-- sim_dat[c(1, 25, 75, 100), ] -->
+
+<!-- sim_dat -->
+
+<!-- # Use pROC calculate TPR/FPR across a range of classification thresholds -->
+<!-- sim_roc <- roc(response = sim_dat$actual_outcome, -->
+<!--                predictor = sim_dat$predicted_prob_of_Yes, -->
+<!--                levels = c('No', 'Yes')) -->
+<!-- # response: vector of actual outcomes -->
+<!-- # predictor: vector of probabilities, one for each observation -->
+<!-- # levels: response values to be taken as "No"/0/"Failure"/etc. and "Yes"/1/"Success"/etc., respectively -->
+
+<!-- # Plot ROC curve -->
+<!-- # - pROC::ggroc() prints the ROC curve using ggplot2; you can print the curve using base R graphics with pROC::plot.roc() -->
+<!-- # - legacy.axes = TRUE ensures that the x-axis is displayed as FPR from 0 to 1 as opposed to -->
+<!-- #     specificity (1-FPR) from 1 to 0 -->
+<!-- ggroc(sim_roc, legacy.axes = TRUE) + -->
+<!--   labs(x = 'False-positive rate', y = 'True-positive rate', title = 'Simulated ROC curve') -->
+
+
+
+
+
+
+
+
+<!-- roc(train.data$Ex_rec, -->
+<!--              predicted.classes) -->
+
+<!-- \ -->
+
+
+
+
+<!-- summary(test.data$Ex_rec) -->
+<!-- ``` -->
+
+
+
+<!-- ### Export Tables to CSV -->
+<!-- ```{r} -->
+<!-- write_csv(Ins_Mod, "~/Desktop/Coding/data/Ins_Mod.csv") -->
+<!-- write_csv(Ins_Act, "~/Desktop/Coding/data/Ins_Act.csv") -->
+<!-- write_csv(Act_Mod, "~/Desktop/Coding/data/Act_Mod.csv") -->
+<!-- ``` -->
+
+
+<!-- # Create Tables for Multinomial Logistic Regression Output  -->
+
+<!-- We have everything we need for our final table output! -->
+<!-- ```{r,message=FALSE} -->
+<!-- #1. Import tables -->
+<!--    r2_change <- read_csv("~/Desktop/Coding/data/R2change.csv") -->
+<!--    cov.SF8_OR_tab <- read.csv("~/Desktop/Coding/data/SF8.cov_OR_tab.csv") -->
+<!--    Ins_Mod <- read_csv("~/Desktop/Coding/data/Ins_Mod.csv") -->
+<!--    Ins_Act <- read_csv("~/Desktop/Coding/data/Ins_Act.csv") -->
+<!--    Act_Mod <- read_csv( "~/Desktop/Coding/data/Act_Mod.csv") -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- #2. Create dataframes to be merged. -->
+<!--     OR_Table = data.frame( -->
+<!--       Ins_Act$variable, Ins_Act$ci, Ins_Mod$ci, Act_Mod$ci,Act_Mod$r2_change -->
+<!--       ) -->
+<!--     colnames(OR_Table) <- c("Variable","IvA_ODDS", -->
+<!--                           "IvM_ODDS", "AvM_ODDS", -->
+<!--                           "R2_Change") -->
+
+<!-- #3. Create a block 3 row -->
+<!--   Block_3 = cbind( -->
+<!--     Variable = "Block 3: Health Conditions R^2 range = 0.032 - 0.052", -->
+<!--     IvA_ODDS = NA, -->
+<!--     IvM_ODDS = NA, -->
+<!--     AvM_ODDS = NA, -->
+<!--     R2_Change = NA -->
+<!--   ) -->
+
+<!-- #4. pull out values from covariates table -->
+<!--   Cov_table = data.frame( -->
+<!--     Full_OR_tab$variable, -->
+<!--     Full_OR_tab$IvA_ODDS,  -->
+<!--     Full_OR_tab$IvM_ODDS, -->
+<!--     Full_OR_tab$AvM_ODDS -->
+<!--   ) -->
+<!--   Cov_table$R2_Change = NA -->
+<!--   colnames(Cov_table) <- c("Variable","IvA_ODDS", -->
+<!--                           "IvM_ODDS", "AvM_ODDS", -->
+<!--                           "R2_Change") -->
+
+<!-- #5. Merge all the data frames -->
+<!--   OR_Table <- rbind(Cov_table,Block_3,OR_Table) -->
+
+<!-- #6. update R2 change df and add it to OR tab -->
+<!--   r2_change = rbind(r2_change[1:6,],NA,r2_change[7:33,]) -->
+<!--   OR_Table <- cbind(OR_Table[,1:4],r2_change) -->
+
+<!-- #6. Rename columns for table  -->
+<!--   colnames(OR_Table) <- c("Variable","Insufficient vs Sufficient ORs", -->
+<!--                           "Insufficient vs Moderate ORs", "Active vs Moderate ORs", "R^2 Change") -->
+
+
+<!-- #7. View Table -->
+<!--     knitr::kable(OR_Table) %>% -->
+<!--           kable_styling(bootstrap_options = c("striped", "hover", "condensed")) -->
+
+<!-- #8 Export Table -->
+<!--     write_csv(OR_Table,"~/Desktop/Coding/data/Thesis_OR_Table.csv") -->
+
+<!-- ``` -->
+
+<!-- ```{r} -->
+
+<!-- ``` -->
+
+
+<!-- Multicolinearity Analysis -->
+<!-- ```{r} -->
+<!-- library(tidyverse) -->
+<!-- library(dplyr) -->
+<!-- library(ggplot) -->
+<!-- library(ggcorrplot) -->
+
+<!-- thesis_NHRVS$Hrt_dis -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- #physical health conditions -->
+<!-- corr1 <- thesis_NHRVS |> -->
+<!--   dplyr::select(Ex_3cat,Any_Disability, Age, College , Income_60k_plus, YN_work , BMI , MCS -->
+<!--     ) -->
+
+<!-- model.matrix(~0+., data=corr1) %>%  -->
+<!--   cor(use="pairwise.complete.obs") %>%  -->
+<!--   ggcorrplot(show.diag=FALSE, type="lower", lab=TRUE, lab_size=2) -->
+
+<!-- # mental health conditions -->
+<!-- corr2 <- thesis_NHRVS |> -->
+<!--   dplyr::select(Ex_3cat,LT_MDD, Age, College , Income_60k_plus, YN_work , BMI , PCS -->
+<!--     ) -->
+
+<!-- model.matrix(~0+., data=corr2) %>%  -->
+<!--   cor(use="pairwise.complete.obs") %>%  -->
+<!--   ggcorrplot(show.diag=FALSE, type="lower", lab=TRUE, lab_size=2) -->
+
+<!-- ``` -->
 
