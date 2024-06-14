@@ -36,6 +36,8 @@ options(knitr.table.format = "html")
 
 #### Import & Select data
 
+Sys.info()
+
 ### Import dataset 
 NHRVS_2019 <- read_sav("~/Desktop/Adams_lab/SPSS_stuff/NHRVS_2019_2020_FINAL_weighted.sav")
 
@@ -1216,7 +1218,18 @@ colnames(CI.Results_B2) <- paste0(colnames(CI.Results_B2),"_CI")
 
 ```
 
+```{r}
+#2.3 Set seed
+set.seed(123456)
 
+#2.4 run boot function
+logBoot<-boot(mydata, # Data
+              logBootstrap, # Statistic
+              10000) # R / number of times
+```
+
+
+Block 3
 ```{r, results='hide'}
 library(broom)
 
@@ -1284,15 +1297,19 @@ mydata_B3 <- na.omit(mydata_B3)
 set.seed(123456)
 
 #2.4 run boot function
-logBoot_B3<-boot(mydata_B3, # Data
+logBoot<-boot(mydata, # Data
               logBootstrap, # Statistic
-              5000) # R / number of times
+              10000) # R / number of times
  
 
 #2.5 confidence interval for bootstraps
 logci_B3<-boot.ci(logBoot,conf=0.95, type="bca")
 
-boot.ci(logBoot_B3, type="bca",index = 1)
+boot.ci(logBoot, type="bca",index = 1)
+library(broom)
+boot_Test <-tidy(logBoot,conf.int=TRUE,conf.method="bca")
+test<-read_csv("~/Downloads/ci_boot_results")
+
 
 #2.6 runboot function
 numVar<-NCOL(mydata_B3)
@@ -1323,7 +1340,7 @@ boot.ci(logBoot_B3, type="bca",index = 1)
 # rand_CI
 
 #Rsq.O - logistic analog to Rsq
-RSQ.o_B3
+RSQ.o
 
 #The Raw and Rescaled Weights
 RW.Results_B3
