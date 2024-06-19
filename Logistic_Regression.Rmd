@@ -24,10 +24,10 @@ The following code will show you how I created functions to run my multinomial r
 ```{r setup, include=FALSE}
 # Setup
 #libraries
-
-if (!require("pacman")) install.packages("pacman")
-pacman::p_load(tidyverse, dplyr, haven,kableExtra,MASS,nnet,performance,fuzzySim, 
-               boot, broom,aod,caret)
+# 
+# if (!require("pacman")) install.packages("pacman")
+# pacman::p_load(tidyverse, dplyr, haven,kableExtra,MASS,nnet,performance,fuzzySim, 
+#                boot, broom,aod,caret)
 
   #data stuff
 library(tidyverse)
@@ -49,19 +49,16 @@ options(knitr.table.format = "html")
 ## Prepare Data For Analysis 
 
 #### Import & Select data
-path <- "/Users/troyh/OneDrive/Documents/R/Data/NHRVS_2019_2020_FINAL_weighted.sav"
-
-
-
-  ifelse(Sys.info()[[1]] == "Windows","/Users/troyh/OneDrive/Documents/R/Data/NHRVS_2019_2020_FINAL_weighted.sav",
+path <- #"/Users/troyh/OneDrive/Documents/R/Data/NHRVS_2019_2020_FINAL_weighted.sav"
+ifelse(Sys.info()[[1]] == "Windows","/Users/troyh/OneDrive/Documents/R/Data/NHRVS_2019_2020_FINAL_weighted.sav",
        ifelse(Sys.info()[[1]] == "Darwin", "~/Desktop/Adams_lab/SPSS_stuff/NHRVS_2019_2020_FINAL_weighted.sav", "¿¿Donde Estoy??"
        ))
 
 ### Import dataset 
 NHRVS_2019 <- read_sav(path)
 
-
-
+str(NHRVS_2019$godin_total_ac)
+view(NHRVS_2019)
 
 ### Select and rename Variables
 thesis_NHRVS <- dplyr::select(NHRVS_2019,
@@ -83,9 +80,11 @@ thesis_NHRVS <- dplyr::select(NHRVS_2019,
       godin_mild_winsor,godin_Mod_winsor,godin_Stren_winsor,HCS,HCS_Cats,
       godin_total_ac,god3cat,god2cat,GODIN_outliers,
     #Education variables __________\
-    ppeduc, ppeducat
+    ppeduc, ppeducat,
+    #Continuous MH
+    GAD_SYMPTOMS_CURRENT, MDD_SYMPTOMS_CURRENT, SUM_PM_PCL, AUDIT_SUM
     )
-    
+
 #Rename variabes
 thesis_NHRVS <- rename(thesis_NHRVS,
       MET_total = godin_total_ac,
@@ -1029,18 +1028,21 @@ FP for logistic Regressions
 
 EX_FP <- 
   fp_df |>
-  ggplot(aes(y = reorder(variable, -order), color = as.factor(sig))) +
+  ggplot(aes(y = reorder(variable, -order))) +
   #take away background
   theme_classic() +
   #make the forrest plot
+  geom_linerange(aes(xmin=OR_low, xmax=OR_high),size = 1, show.legend = FALSE,
+                color = ifelse(fp_df$p.adjusted < 0.05, "darkblue", "darkgrey")) +
   geom_point(aes(x=OR), shape= 16,
-               # ifelse(FP_dep$p.adjusted <= 0.05, 
-               #                        16, # colored ones for significant varaibles
-               #                        1), # uncolored ones for insignificant varaibles
-             size=4,show.legend = FALSE) +
-  geom_linerange(aes(xmin=OR_low, xmax=OR_high),size = 1, show.legend = FALSE) +
+             size=4,show.legend = FALSE,
+             color = ifelse(fp_df$p.adjusted < 0.05, "darkblue", "darkgrey")) +
+  geom_point(aes(x=OR), shape= 1,
+             size=4,show.legend = FALSE, color = "white") +
+    geom_point(aes(x=OR), shape= 1,
+             size=4.1,show.legend = FALSE, color = "white") +
+
   # geom_errorbar(aes(xmin=OR_low, xmax=OR_high),width =.6, show.legend = FALSE) +
-  scale_color_manual(values = c("black","black"))+
   #change x axis name
   labs(
     x="Odds Ratio",
@@ -1282,6 +1284,7 @@ RW.Results <- result |>
 # 1.3 display results of relative weight analysis
 knitr::kable(RW.Results) %>%
     kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+RW.Results
 
 ```
 
@@ -1322,8 +1325,6 @@ CI.Result<-data.frame(Variables=colnames(mydata[2:10]), CI.Lower.Bound=test2[,4]
 #2.8 Save df as a csv so you can call it again in the future
 write_csv(CI.Result, "/Users/troyh/Downloads/CI.Result")
 write_csv(tidy_boot, "/Users/troyh/Downloads/tidy_boot")
-
-
 
 #2.9 Here is the output using tidy()
 knitr::kable(tidy_boot) %>%
@@ -1426,10 +1427,11 @@ Negative lower bound CI's indicate non significance. You can see that Athsma, DU
 ### Part 3 join results into on df and create variables for Figures
 
 ```{r rename df}
-# CI.Result <- read.csv("/Users/troyh/Downloads/CI.Result")
-# CI.Result.res <- read.csv("/Users/troyh/Downloads/CI.Result.res")
-# tidy_boot_res <- read_csv("/Users/troyh/Downloads/tidy_boot_res")
-# tidy_boot <- read_csv("/Users/troyh/Downloads/tidy_boot")
+CI.Result <- read.csv("/Users/troyh/Downloads/CI.Result")
+CI.Result.res <- read.csv("/Users/troyh/Downloads/CI.Result.res")
+tidy_boot_res <- read_csv("/Users/troyh/Downloads/tidy_boot_res")
+
+tidy_boot <- read_csv("/Users/troyh/Downloads/tidy_boot")
 
 #BCa Confidence Intervals around the raw weights
 
@@ -1497,7 +1499,18 @@ wt_df <- RW.Results |>
 I used patchwork to combine `ggtext()` and the `geom_bar()` figures. The figure 
 below is manually calculated 95% CI's for the rescaled weights using `tidy()` to extract the bootstrapped standard errors.
 
+```{r}
+wt_df <- readxl::read_excel("~/Downloads/plot_test.xlsx")
+wt_df
+```
+
+
+
 ```{r fig 1,fig.width=8,warning=FALSE,message=FALSE}
+
+
+
+
 wt_plot_man <- wt_df |>
   ggplot(aes(x=reorder(Variables,-order),y=Rescaled.RelWeight.percent)) +
   geom_bar(stat = "identity", color = "Black", width = .75, fill = "#91c3e6" )+
@@ -1536,13 +1549,122 @@ layout <- c(
   patchwork::area(t = 0, l = 0, b = 30, r = 30),
   patchwork::area(t = 0, l = 22, b = 30, r = 40)
 )
-```
 
-
-```{r fig 2,fig.width=8}
 wt_text_man + wt_plot_man + plot_layout(design = layout)
 ```
 
+```{r,warning=FALSE}
+wt_df$Variables = c("Age", "Some College", "Income ≥ 60k", "Asthma", "Diabetes",
+                    "Obesity", "Current DUD", "Current GAD", "Current MDD", "Variable")
+
+wt_plot1 <-
+  wt_df |>
+  ggplot(aes(y = reorder(Variables, -order))) +  #, color = as.factor(sig))) +
+  #take away background
+  theme_classic() +
+  #make the forrest plot
+  geom_linerange(aes(xmin=res.CI.low.man, xmax=res.CI.high.man),size = 1, show.legend = FALSE, color = ifelse(wt_df$res.CI.low.man < 0,                       "darkgrey", "darkgreen"))+
+  geom_linerange(aes(xmin=Low2, xmax=High2),size = 2, show.legend = FALSE,color = ifelse(wt_df$res.CI.low.man < 0, "darkgrey", "darkgreen"))+
+  geom_linerange(aes(xmin=Low1, xmax=High1),size = 3, show.legend = FALSE, color = ifelse(wt_df$res.CI.low.man < 0, "darkgrey", "darkgreen"))+
+  #using a box
+  # geom_point(aes(x=Rescaled.RelWeight.percent), shape= 15,
+             # size=4,show.legend = FALSE, color="orange")+
+  #using circle
+  geom_point(aes(x=Rescaled.RelWeight.percent), shape= 16,
+             size=5,show.legend = FALSE, color=
+               ifelse(wt_df$res.CI.low.man < 0, "darkgrey", "darkgreen"))+
+  geom_point(aes(x=Rescaled.RelWeight.percent), shape= 1,
+             size=5,show.legend = FALSE,color="white")+
+  geom_point(aes(x=Rescaled.RelWeight.percent), shape= 1,
+             size=5.2,show.legend = FALSE,color="white")+
+    geom_point(aes(x=Rescaled.RelWeight.percent), shape= 1,
+             size=5.4,show.legend = FALSE,color="white")+
+  #using diamond
+  # geom_point(aes(x=Rescaled.RelWeight.percent), shape= 18, 
+  #            size=6.5,show.legend = FALSE, color="orange")+
+#change x axis name
+  labs(
+    x="Weight (%) of variance (R2o) in physical activity",
+    subtitle =".        Relative Weight (%) Of Predictors On Physical Activity" ) +
+  #adjust the dimentions.
+  coord_cartesian(ylim = c(1,length(wt_df$Variables))) +
+  #add a line at 1 for reference
+  geom_vline(xintercept = 0,linetype="dashed",alpha = .50) +
+  #add anotations to help suggests what each side means.
+    theme(axis.line.y = element_blank(),
+        axis.ticks.y= element_blank(),
+        axis.text.y= element_blank(),
+        axis.title.y= element_blank())
+wt_plot1
+```
+
+
+```{r,warning=FALSE}
+wt_df$Variables = c("Age", "Some College", "Income ≥ 60k", "Asthma", "Diabetes",
+                    "Obesity", "Current DUD", "Current GAD", "Current MDD", "Variable")
+
+wt_plot2 <-
+  wt_df |>
+  ggplot(aes(y = reorder(Variables, -order))) +  #, color = as.factor(sig))) +
+  #take away background
+  theme_classic() +
+  #make the forrest plot
+  geom_linerange(aes(xmin=res.CI.low.man, xmax=res.CI.high.man),size = 1, show.legend = FALSE,color = "darkblue")+
+  geom_linerange(aes(xmin=Low2, xmax=High2),size = 2, show.legend = FALSE,color = "darkblue")+ 
+  geom_linerange(aes(xmin=Low1, xmax=High1),size = 3, show.legend = FALSE, color = "darkblue")+
+  #using a box
+  # geom_point(aes(x=Rescaled.RelWeight.percent), shape= 15,
+             # size=4,show.legend = FALSE, color="orange")+
+  #using circle
+  geom_point(aes(x=Rescaled.RelWeight.percent), shape= 18,
+             size=5,show.legend = FALSE, color = "darkblue")+
+  geom_point(aes(x=Rescaled.RelWeight.percent), shape= 5,
+             size=4,show.legend = FALSE,color="white")+
+  geom_point(aes(x=Rescaled.RelWeight.percent), shape= 5,
+             size=4.2,show.legend = FALSE,color="white")+
+    geom_point(aes(x=Rescaled.RelWeight.percent), shape= 5,
+             size=4.4,show.legend = FALSE,color="white") + 
+#change x axis name
+  labs(
+    x="Weight (%) of variance (R2o) in physical activity",
+    subtitle =".        Relative Weight (%) Of Predictors On Physical Activity" ) +
+  #adjust the dimentions.
+  coord_cartesian(ylim = c(1,length(wt_df$Variables))) +
+  #add a line at 1 for reference
+  geom_vline(xintercept = 0,linetype="dashed",alpha = .50) +
+  
+  #add anotations to help suggests what each side means.
+    theme(axis.line.y = element_blank(),
+        axis.ticks.y= element_blank(),
+        axis.text.y= element_blank(),
+        axis.title.y= element_blank())
+
+wt_plot2
+```
+
+
+```{r}
+wt_text_man <- 
+  wt_df |>
+  ggplot(aes(y = reorder(Variables, -order))) +
+  geom_text(aes(x = 0, label = Variables), hjust = 0, 
+        fontface = ifelse(wt_df$Variables == "Variable", "bold","plain")) +
+  geom_text(aes(x = 1.1, label = Res.wt.text),
+        hjust = 0,
+        fontface = ifelse(wt_df$Res.wt.text == "Rescaled (%)", "bold","plain")) +
+  geom_text(aes(x = 2, label = res.CI.man),
+        hjust = 0,
+        fontface = ifelse(wt_df$res.CI.man == "95% CI", "bold","plain")) +
+  theme_void() +     
+  coord_cartesian(ylim = c(1,length(wt_df$Variables)), xlim = c(0, 4))
+library("patchwork")
+layout <- c(
+  patchwork::area(t = 0, l = 0, b = 30, r = 30),
+  patchwork::area(t = 0, l = 22, b = 30, r = 40)
+)
+
+wt_text_man + wt_plot2 + plot_layout(design = layout)
+```
 
 
 
@@ -1606,8 +1728,7 @@ wt_text + wt_plot + plot_layout(design = layout)
 library(bruceR)
 # assign a vector of covariates to be used in analysis
 covs = c("White_Race",
-  "Income_60k_plus","College",
-  "Combat_Veteran", "TOTAL_TRAUMAS")
+  "Combat_Veteran", "College", "Income_60k_plus", "TOTAL_TRAUMAS")
 
 ##### AGE -> EX
 
@@ -1626,7 +1747,6 @@ PROCESS(thesis_NHRVS,
   covs = c("White_Race","Combat_Veteran", "TOTAL_TRAUMAS"))
 
   #This was already done above, but for referene
-DOCS_mod = glm(MET_min~College*Age+White_Race+Combat_Veteran+TOTAL_TRAUMAS, data=thesis_NHRVS)
 
 #Age*Diabetes
 PROCESS(thesis_NHRVS,
@@ -1658,8 +1778,195 @@ PROCESS(thesis_NHRVS,
   mods = "Diabetes",
   y="MET_min",
   covs = c("White_Race","Combat_Veteran", "TOTAL_TRAUMAS"))
+```
+
+```{r}
+#BMI*GAD - insignificant
+#BMI*MDD - insignificant
+#BMI*PTSD - insignificant 
+#BMI*AUDIT - insignificant 
+
+#Diaabetes*GAD - insignificant
+#Diabetes*MDD - insignificant
+#Diabetes*PTSD - insignificant 
+#Diabetes*AUDIT - insignificant 
+
+#check if total health conditions mediates or moderates exercise (met mins/sufficient)
+
+library(bruceR)
+
+covs = c("White_Race",
+  "Combat_Veteran", "Income_60k_plus", "TOTAL_TRAUMAS")
+
+PROCESS(thesis_NHRVS,
+  x="Age",
+  mods = "Total_HC",
+  y="MET_min_W",
+  covs = covs)
 
 ```
+
+Random forrest?
+```{r}
+
+
+NHRVS_2019$BMI
+rf_df <- NHRVS_2019 |>
+  dplyr::select(
+#Sociodem
+Age,Male_Gender,White_Race,SomeCollege_or_Higher,Married_Partnered,Income_60k_plus,BMI,
+#Military
+Combat_Veteran,Years_in_Military,Retired,
+#Health_stuff
+SUM_Concussion_Items, Concussion_PosScreen,
+#trauma_stuff
+TOTAL_TRAUMAS,DIRECT_TRAUMA_EXPS,ACES_TOTAL,YrsSinceWorstTrauma,SUM_PM_PCL,PM_PCL_31,POSTTRAUMATIC_GROWTH_TOTAL,
+#PTG
+PTGI_RELATING_TO_OTHERS,PTGI_NEW_POSSIBILITIES,PTGI_PERSONAL_STRENGTH,PTGI_SPIRITUAL_CHANGE,PTGI_APPRECIATION_OF_LIFE,
+#Current psychiatric
+MDD_SYMPTOMS_CURRENT:SI_SYMPTOMS_CURRENT,AUDIT_SUM,
+#PHYSICAL HEALTH 
+NUMBER_MEDICAL_CONDITIONS:INSOMNIA_SEVERITY,MOS_COGNITIVE_FUNCTIONING,
+#PERSONALITY_CHARACTERISTICS
+EXTRAVERSION:IMPULSIVENESS,
+#Protective_psychosocial
+RESILIENCE:GRIT,
+#SOCIAL SUPPORT
+STRUCTURAL_SOCIAL_SUPPORT:ALTRUISTIC_BEHAVIOR,
+#expectations_regarding_aging
+POSITIVE_EXPECTATIONS_REGARDING_AGING,
+PositiveERA_physical:PositiveERA_cognitive,
+#functioning
+SF8_PHYSFXN_FINAL:SF8_MENTALHEALTH_FINAL,
+#MENTAL HEALTH TREATMENT
+Lifetime_MH_Tx,Duration,
+    #Physical health Variables_________
+      ANY_ADL_DISABILITY,ANY_IADL_DISABILITY,Any_Disability,tot_phc,Any_PHC,Q22A_1,Q22A_2,
+      Q22A_3,Q22A_4,Q22A_5,Q22A_6,Q22A_7,Q22A_8,Q22A_9,Q22A_10,Q22A_11,Q22B_1,
+      Q22B_2,Q22B_3,Q22B_4,Q22B_5,
+    #Exercise variables ___________
+      godin_mild_winsor,godin_Mod_winsor,godin_Stren_winsor,godin_total_ac,
+    #Education variables __________\
+    ppeduc, ppeducat
+)
+#Rename variabes
+rf_df<-rename(rf_df,
+#Rename variabes
+
+      God_mild = godin_mild_winsor,
+      God_mod = godin_Mod_winsor,
+      God_stren = godin_Stren_winsor,
+      College = SomeCollege_or_Higher,
+      Arthritis = Q22A_1,
+      Athsma =  Q22A_2,
+      Cancer = Q22A_3,
+      Chron_pain = Q22A_4,
+      Liv_dis = Q22A_5,
+      Diabetes = Q22A_6,
+      Hrt_dis = Q22A_7,
+      Hrt_atk = Q22A_8,
+      High_chol = Q22A_9,
+      High_bld_press = Q22A_10,
+      Kid_dis = Q22A_11,
+      Migrane = Q22B_1,
+      MS = Q22B_2,
+      Osteoporosis = Q22B_3,
+      Rhum_arth = Q22B_4,
+      Stroke = Q22B_5,
+      edu = ppeduc,
+      Education_Cat = ppeducat 
+) |>
+  # First Create all of the variables
+  mutate(rf_df, 
+    # Exercise variables
+         Ex_time = (God_mild + God_mod + God_stren)*15,
+         HCS = God_mild*3 + God_mod*5 + God_stren*9,
+            # Tells us how long people exercised for.
+         MET_min = godin_total_ac* 15,
+         MET_min_W = ifelse(MET_min > 2500, 2500, MET_min),
+            # Total METs per week times the duration of exercise
+         Ex_rec = as.factor(ifelse(MET_min >= 500, "Sufficient", "Inufficient"))
+    
+  )
+# 3 godin (HCS) categories converted to MET_min 
+    # Other Variables 
+
+mutate(rf_df,
+      #Physical health variables
+           Any_Disability = as.factor(Any_Disability),
+           Arthritis = as.factor(Arthritis),
+           Athsma = as.factor(Athsma),
+           Cancer = as.factor(Cancer),
+           Chron_pain = as.factor(Chron_pain),
+           Liv_dis = as.factor(Liv_dis),
+           Diabetes = as.factor(Diabetes),
+           Hrt_dis = as.factor(Hrt_dis),
+           Hrt_atk = as.factor(Hrt_atk),
+           High_chol = as.factor(High_chol),
+           High_bld_press = as.factor(High_bld_press),
+           Kid_dis = as.factor(Kid_dis),
+           Migrane = as.factor(Migrane),
+           MS = as.factor(MS),
+           Osteoporosis = as.factor(Osteoporosis),
+           Rhum_arth = as.factor(Rhum_arth),
+           Stroke = as.factor(Stroke),
+           Male_Gender = as.factor(Male_Gender), 
+           Married_Partnered = as.factor(Married_Partnered),
+           White_Race = as.factor(White_Race),
+           College = as.factor(College),
+           Income_60k_plus = as.factor(Income_60k_plus),
+           Combat_Veteran = as.factor(Combat_Veteran),
+    #Education variables
+      Education_Cat = as.factor(Education_Cat) 
+    ) 
+
+
+ mutate(rf_df, 
+        Married_Partnered = recode(Married_Partnered,
+                         "0" = "Married_Partnered",
+                         "1" = "Single"),
+        Male_Gender = as.factor(Male_Gender),
+        Male_Gender = recode(Male_Gender,
+                         "0" = "Female",
+                         "1" = "Male"),
+        White_Race = recode(White_Race,
+                         "0" = "Not_White",
+                         "1" = "White"),
+        College = recode(College,
+                         "0" = "No_Colege",
+                         "1" = "Some_Colege"),
+        Income_60k_plus = recode(Income_60k_plus,
+                         "0" = "Under_60k",
+                         "1" = "OVer_60k"),
+        Combat_Veteran = as.factor(Combat_Veteran),
+        Combat_Veteran = recode(Combat_Veteran,
+                         "0" = "No_Combat",
+                         "1" = "Combat"),
+        Education = ifelse(edu <= 9, "HS Education or Less",
+                    ifelse(edu == 10 | edu == 11, "Some College",
+                    ifelse(edu == 12, "Bacholars Degree", "Advanced Degree"
+                    ))),
+        Education = as.factor(Education),
+        )
+
+#Filter out NA values
+rf_df <- rf_df %>%
+  filter(!is.na(Ex_rec), !is.na(BMI), !is.na(Any_Disability),
+         !is.na(Arthritis), !is.na(Cancer), !is.na(Chron_pain), !is.na(Liv_dis),
+         !is.na(Diabetes), !is.na(Hrt_dis), !is.na(Hrt_atk), !is.na(High_chol), 
+         !is.na(High_bld_press),!is.na(Kid_dis), !is.na(Migrane), !is.na(MS), 
+         !is.na(Osteoporosis), !is.na(Rhum_arth), !is.na(Stroke), !is.na(MDD_Current),
+         !is.na(PTSD_Current), !is.na(AUD_Current), !is.na(DUD_Current), 
+         !is.na(edu)) |>
+  mutate(Obesity = ifelse(is.na(BMI), NA,
+      ifelse(BMI >=30,1,0)),
+      Obesity = as.factor(Obesity)
+           ) 
+```
+
+
+
+
 
 https://www.appsilon.com/post/r-logistic-regression
 ROC. vs AUC
@@ -1717,6 +2024,7 @@ ggroc(roc1, legacy.axes = TRUE) +
 
 predictive probabilities
 ```{r}
+hist(thesis_NHRVS$MET_min_W)
 
 HC_df <- thesis_NHRVS |>
   dplyr::select(
