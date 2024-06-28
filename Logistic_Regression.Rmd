@@ -1549,6 +1549,7 @@ layout <- c(
   patchwork::area(t = 0, l = 0, b = 30, r = 30),
   patchwork::area(t = 0, l = 22, b = 30, r = 40)
 )
+##
 
 wt_text_man + wt_plot_man + plot_layout(design = layout)
 ```
