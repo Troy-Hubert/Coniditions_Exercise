@@ -1556,6 +1556,7 @@ wt_text_man + wt_plot_man + plot_layout(design = layout)
 ```{r,warning=FALSE}
 wt_df$Variables = c("Age", "Some College", "Income ≥ 60k", "Asthma", "Diabetes",
                     "Obesity", "Current DUD", "Current GAD", "Current MDD", "Variable")
+####
 
 wt_plot1 <-
   wt_df |>
