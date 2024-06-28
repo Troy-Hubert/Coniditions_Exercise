@@ -1816,7 +1816,6 @@ PROCESS(thesis_NHRVS,
 Random forrest?
 ```{r}
 
-str(NHRVS_2019$Duration)
 
 rf_df <- NHRVS_2019 |>
   dplyr::select(
@@ -1846,7 +1845,7 @@ PositiveERA_physical:PositiveERA_cognitive,
 #functioning
 SF8_PHYSFXN_FINAL:SF8_MENTALHEALTH_FINAL,
 #MENTAL HEALTH TREATMENT
-Lifetime_MH_Tx,#Duration,
+Lifetime_MH_Tx, Duration,
     #Physical health Variables_________
       # ANY_ADL_DISABILITY,ANY_IADL_DISABILITY,Any_Disability,tot_phc,Any_PHC,
       Q22A_1,Q22A_2,
@@ -1883,7 +1882,7 @@ rf_df<-rename(rf_df,
       Stroke = Q22B_5,
       edu = ppeduc,
       Education_Cat = ppeducat,
-     #Therapy_Duration = Duration
+     Therapy_Duration = Duration
 ) |>
   # First Create all of the variables
   mutate(rf_df, 
@@ -1895,7 +1894,7 @@ rf_df<-rename(rf_df,
          MET_min_W = ifelse(MET_min > 2500, 2500, MET_min),
             # Total METs per week times the duration of exercise
          Ex_rec = as.factor(ifelse(MET_min >= 500, "Sufficient", "Inufficient")),
-         #Duration = Duration /3600
+         Therapy_Duration = Therapy_Duration /3600
     
   ) 
 rf_df<- mutate(rf_df,
@@ -1970,20 +1969,17 @@ rf_df <- rf_df |>
   ) |>
   na.omit(rf_df)
 
-```
 
-```{r}
-set.seed(123)
-# install.packages('rsample')
-library(rsample)
-# Split the data into training and testing sets
-data_split <- initial_split(rf_df, prop = 0.75)
-train_data <- training(data_split)
-test_data <- testing(data_split)
-test_data
-```
 
-```{r}
+# set.seed(123)
+# # install.packages('rsample')
+# library(rsample)
+# # Split the data into training and testing sets
+# data_split <- initial_split(rf_df, prop = 0.75)
+# train_data <- training(data_split)
+# test_data <- testing(data_split)
+# test_data
+
 set.seed(123)
 library(randomForest)
 rf <-randomForest(Ex_rec~.,data=rf_df, ntree=500,importance = TRUE) 
@@ -2008,17 +2004,64 @@ print(mtry)
 print(best.m)
 
 set.seed(71)
-EX_RF_Model <-randomForest(Ex_rec~.,data=rf_df, mtry=best.m, ntree=500,importance = TRUE)
+EX_RF_Model2 <-randomForest(Ex_rec~.,data=rf_df, mtry=best.m, ntree=500,importance = TRUE)
 print(EX_RF_Model)
 #Evaluate variable importance
 importance(EX_RF_Model)
 varImpPlot(EX_RF_Model)
+varImpPlot(EX_RF_Model,type = 1)
 varImpPlot(EX_RF_Model,type = 2)
+varImpPlot(EX_RF_Model2,type = 1)
+varImpPlot(EX_RF_Model2,type = 2)
+```
 
-LASSO
+
+```{r}
+library(bruceR)
+
+############################## bmi ###############################
+### OPENNESS TO EXPERIENCES
+PROCESS(rf_df, # Data
+  x="BMI",  # Health conditoin
+  mods = "OPENNESS_TO_EXPERIENCES",  # Moderator
+  y="Ex_rec", # outcome variable
+  covs = c("White_Race","Income_60k_plus","College","Combat_Veteran", "TOTAL_TRAUMAS"))
+
+### CURIOSITY 
+PROCESS(rf_df, # Data
+  x="BMI",  # Health conditoin
+  mods = "CURIOSITY",  # Moderator
+  y="Ex_rec", # outcome variable
+  covs = c("White_Race","Income_60k_plus","College","Combat_Veteran", "TOTAL_TRAUMAS"))
+
+### sOMATIC SYMPTOMS
+PROCESS(rf_df, # Data
+  x="BMI",  # Health conditoin
+  mods = "SOMATIC_SYMPTOMS",  # Moderator
+  y="Ex_rec", # outcome variable
+  covs = c("White_Race","Income_60k_plus","College","Combat_Veteran", "TOTAL_TRAUMAS"))
+
+#PTG
+
+PROCESS(rf_df, # Data
+  x="BMI",  # Health conditoin
+  mods = "POSTTRAUMATIC_GROWTH_TOTAL",  # Moderator
+  y="Ex_rec", # outcome variable
+  covs = c("White_Race","Income_60k_plus","College","Combat_Veteran", "TOTAL_TRAUMAS"))
 
 ```
 
+```{r}
+############################## age ###############################
+
+
+### sOMATIC SYMPTOMS
+PROCESS(rf_df, # Data
+  x="Age",  # Health conditoin
+  mods = "SOMATIC_SYMPTOMS",  # Moderator
+  y="Ex_rec", # outcome variable
+  covs = c("White_Race","Combat_Veteran", "TOTAL_TRAUMAS"))
+```
 
 
 
