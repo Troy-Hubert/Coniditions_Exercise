@@ -21,13 +21,13 @@ The following code will show you how I created functions to run my multinomial r
 7. Create table of output from stepwise regression model. 
 
 --- 
-```{r setup, include=FALSE}
+```{r, include=FALSE}
 # Setup
-#libraries
-# 
-# if (!require("pacman")) install.packages("pacman")
-# pacman::p_load(tidyverse, dplyr, haven,kableExtra,MASS,nnet,performance,fuzzySim, 
-#                boot, broom,aod,caret)
+# libraries
+
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse, dplyr, haven,kableExtra,MASS,nnet,performance,fuzzySim,
+               boot, broom,aod,caret)
 
   #data stuff
 library(tidyverse)
@@ -44,9 +44,9 @@ library(broom) #for tidy models
   library(aod) # Wald test
 library(boot) #bootstrapping
 #library(caret) #weight analysis???
-options(knitr.table.format = "html") 
+options(knitr.table.format = "html")
 
-## Prepare Data For Analysis 
+## Prepare Data For Analysis
 
 #### Import & Select data
 path <- #"/Users/troyh/OneDrive/Documents/R/Data/NHRVS_2019_2020_FINAL_weighted.sav"
@@ -54,7 +54,7 @@ ifelse(Sys.info()[[1]] == "Windows","/Users/troyh/OneDrive/Documents/R/Data/NHRV
        ifelse(Sys.info()[[1]] == "Darwin", "~/Desktop/Adams_lab/SPSS_stuff/NHRVS_2019_2020_FINAL_weighted.sav", "¿¿Donde Estoy??"
        ))
 
-### Import dataset 
+### Import dataset
 NHRVS_2019 <- read_sav(path)
 
 str(NHRVS_2019$godin_total_ac)
@@ -118,14 +118,14 @@ thesis_NHRVS <- rename(thesis_NHRVS,
       DUD_Current = DUD_CURRENT,
       Concussion_current = Concussion_PosScreen,
       edu = ppeduc,
-      Education_Cat = ppeducat 
+      Education_Cat = ppeducat
 )
-# We need exercsie variables that are in MET minutes, not just HCS. 
+# We need exercsie variables that are in MET minutes, not just HCS.
 # We also need to create demographic and health variables
 
 thesis_NHRVS<- thesis_NHRVS %>%
   # First Create all of the variables
-  mutate(thesis_NHRVS, 
+  mutate(thesis_NHRVS,
     # Exercise variables
          Ex_time = (God_mild + God_mod + God_stren)*15,
             # Tells us how long people exercised for.
@@ -138,16 +138,16 @@ thesis_NHRVS<- thesis_NHRVS %>%
                               ifelse(MET_min < 500 & MET_min >= 290, 2,3))),
          Ex_4cats = as.factor(ifelse(MET_min < 290, "Sed",
                               ifelse(MET_min < 500 & MET_min >= 290, "Mod",
-                              ifelse(MET_min < 1000 & MET_min >= 500, "Active", 
+                              ifelse(MET_min < 1000 & MET_min >= 500, "Active",
                               ifelse(MET_min < 2000 & MET_min >= 1000, "Super", NA))))),
          Ex_3catW = as.factor(ifelse(MET_min_W < 290, 1,
                               ifelse(MET_min_W < 500 & MET_min_W >= 290, 2,3))),
          Ex_4catsW = as.factor(ifelse(MET_min_W < 290, "Sed",
                               ifelse(MET_min_W < 500 & MET_min_W >= 290, "Mod",
-                              ifelse(MET_min_W < 1000 & MET_min_W >= 500, "Active", 
+                              ifelse(MET_min_W < 1000 & MET_min_W >= 500, "Active",
                               ifelse(MET_min_W < 2500 & MET_min_W >= 1000, "Super", NA))))),
-# 3 godin (HCS) categories converted to MET_min 
-    # Other Variables 
+# 3 godin (HCS) categories converted to MET_min
+    # Other Variables
          HCS_win = (God_mod*5) + (God_stren*9),
          HCS3cat = as.factor(ifelse(HCS_win < 14, "Insufficient",
                               ifelse(HCS_win < 24 & HCS_win >= 290, "Moderate", "Active"))),
@@ -164,7 +164,7 @@ thesis_NHRVS<- thesis_NHRVS %>%
                     Kid_dis + Migrane + MS + Osteoporosis + Rhum_arth + Stroke,
          Total_MHC = PTSD_Current + MDD_Current + GAD_Current + AUD_Current + DUD_Current,
          No_Condition = ifelse(Any_MHC == 1 | Any_PHC ==1, 0,1)
-    
+
     ) %>%
 mutate(thesis_NHRVS,
       #Physical health variables
@@ -185,8 +185,8 @@ mutate(thesis_NHRVS,
            Osteoporosis = as.factor(Osteoporosis),
            Rhum_arth = as.factor(Rhum_arth),
            Stroke = as.factor(Stroke),
-           Ex_3cat = as.factor(Ex_3cat),  
-           Male_Gender = as.factor(Male_Gender), 
+           Ex_3cat = as.factor(Ex_3cat),
+           Male_Gender = as.factor(Male_Gender),
            Married_Partnered = as.factor(Married_Partnered),
            White_Race = as.factor(White_Race),
            College = as.factor(College),
@@ -204,9 +204,9 @@ mutate(thesis_NHRVS,
           AUD_Current = as.factor(AUD_Current),
           DUD_Current = as.factor(DUD_Current),
     #Education variables
-      Education_Cat = as.factor(Education_Cat) 
+      Education_Cat = as.factor(Education_Cat)
     )
-thesis_NHRVS <- mutate(thesis_NHRVS, 
+thesis_NHRVS <- mutate(thesis_NHRVS,
         Ex_3cat = recode(Ex_3cat,
                          "1" = "Insufficient",
                          "2" = "Moderate",
@@ -284,7 +284,7 @@ thesis_NHRVS <- thesis_NHRVS %>%
   mutate(Obesity = ifelse(is.na(BMI), NA,
       ifelse(BMI >=30,1,0)),
       Obesity = as.factor(Obesity)
-           ) 
+           )
   
 #$View(thesis_NHRVS)
 
@@ -479,6 +479,194 @@ Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$PTSD_Current,"P
 Conditions_chi<-rbind(Conditions_chi,Condition_eval(thesis_NHRVS$GAD_Current,"GAD"))
 ```
 
+
+Extracting values from chi square tables. 
+```{r}
+#table with and without health conditions
+  xtable2  <- xtabs(~Athsma+Ex_rec,data = thesis_NHRVS)
+  xtable2  <- rbind(xtable2,xtabs(~Arthritis+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~Cancer+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~Chron_pain+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~Liv_dis+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~Diabetes+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~Hrt_dis+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~Hrt_atk+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~High_chol+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~High_bld_press+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~Kid_dis+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~Migrane+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~MS+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~Osteoporosis+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~Obesity+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~Rhum_arth+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~Stroke+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~AUD_Current+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~DUD_Current+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~MDD_Current+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~PTSD_Current+Ex_rec,data = thesis_NHRVS))
+  xtable2  <- rbind(xtable2,xtabs(~GAD_Current+Ex_rec,data = thesis_NHRVS))
+xtable2<-data.frame(xtable2)
+#create a varaible for diagnosis
+xtable2$condition<- NA
+diagnose<- c("No Condition","Condition")
+xtable2$condition = diagnose
+xtable2
+
+knitr::kable(xtable2[1:10,]) %>%
+   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+```{r,include=FALSE}
+  var_names = c("Asthma",
+                "Arthritis",
+                "Cancer",
+                "Chron pain",
+                "Liver Disease",
+                "Diabetes",
+                "Heart Disease", 
+                "Heart Attack", 
+                "High Cholesterol", 
+                "Hypertension", 
+                "Kidney Disease", 
+                "Migraine", 
+                "MS", 
+                "Osteoporosis", 
+                "Obesity",
+                "Rheumatoid Arthritis", 
+                "Stroke",
+                "AUD", 
+                "DUD",
+                "MDD", 
+                "PTSD", 
+                "GAD")
+
+#2. Varaible names for table 
+ var_names2 = c("Asthsma","Asthsma",
+                "Arthritis", "Arthritis",
+                "Cancer","Cancer",
+                "Chron pain","Chron pain",
+                "Liver Disease","Liver Disease",
+                "Diabetes","Diabetes",
+                "Heart Disease", "Heart Disease",
+                "Heart Attack", "Heart Attack",
+                "High Cholesterol", "High Cholesterol",
+                "Hypertension", "Hypertension", 
+                "Kidney Disease", "Kidney Disease",
+                "Migraine",  "Migraine", 
+                "MS", "MS", 
+                "Osteoporosis", "Osteoporosis",
+                "Obesity", "Obesity",
+                "Rheumatoid Arthritis", "Rheumatoid Arthritis",
+                "Stroke","Stroke",
+                "AUD", "AUD",
+                "DUD","DUD",
+                "MDD",  "MDD", 
+                "PTSD", "PTSD", 
+                "GAD", "GAD")
+ 
+ length(var_names2)*2
+ 
+ xtable2$Inufficient
+
+###############START HERE######################
+#3. make long data frame (needed for plot)
+      condition_df2          <- var_names2
+      condition_df2 <- data.frame(condition_df2) 
+      condition_df2 <- rbind(condition_df2,condition_df2)
+      condition_df2[1:88,1]  <- var_names2              
+      condition_df2[1:44,2]  <-  xtable2$Inufficient
+      condition_df2[1:44,3]  =  "Insufficient"
+      condition_df2[45:88,2] <- xtable2$Sufficient
+      condition_df2[45:88,3] <- "Sufficient"
+      condition_df2$Diagnosis = xtable2$condition
+      names(condition_df2) <- c("Variable","Value","Ex_rec","Diagnosis")
+      knitr::kable(condition_df2[1:10,]) %>%
+         kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+      
+```
+
+
+Now that we have the data we can plot it! I use `ggplot()` to plot the figure. As this is a bar chart I use `geom_bar()` and use `position="stack"` to make the stacked bar chart. I used `fct_reorder()` to order the chart in order of the number of veterans reporting that condition. `facet_grid()` was used to seperate the the number of veterans with and without conditions into different figures. Lastly of note, I used `coord_flip()` to put both of the figures on the Y axis. 
+```{r}
+
+#left side
+
+X2_L<- 
+  subset(condition_df2,Diagnosis =="No Condition") |>
+  ggplot( aes(fill=Ex_rec, y=Value, x= fct_reorder(Variable, -Value))) + 
+  geom_bar(position="stack", stat="identity")+
+  # facet_grid(~ Diagnosis)+ 
+  ylab('Number of Veterans') +
+  xlab('Health Condition')+
+  labs(fill='Physical Activity') +
+  theme_classic()+
+  theme(legend.position="none")+
+  coord_flip()+
+    scale_fill_manual(values=c("#e36d36","#1cc75b"))+
+  scale_y_reverse() +
+  theme(axis.line.y = element_blank(),
+        axis.ticks.y= element_blank(),
+        axis.text.y= element_blank(),
+        axis.title.y= element_blank())
+
+#right side
+X2_R<- 
+  subset(condition_df2,Diagnosis =="Condition") |>
+  ggplot( aes(fill=Ex_rec, y=Value, x= fct_reorder(Variable, Value))) + 
+  geom_bar(position="stack", stat="identity")+
+  # facet_grid(~ Diagnosis)+ 
+  ylab('Number of Veterans') +
+  xlab('Health Condition')+
+  labs(fill='Physical Activity') +
+  theme_classic()+
+  theme(legend.position="None")+
+  coord_flip(ylim = c(0,3500)) +
+  scale_fill_manual(values=c("#e36d36","#1cc75b"))+
+  theme(axis.line.y = element_blank(),
+        axis.ticks.y= element_blank(),
+        axis.text.y= element_blank(),
+        axis.title.y= element_blank())
+
+# get chi2 values for middle of plot 
+Conditions_chi$chichi = round(as.numeric(Conditions_chi$chi2),2)
+Conditions_chi$p = as.numeric(Conditions_chi$p)
+Conditions_chi1 <- Conditions_chi |>
+  mutate(
+    label = 
+      ifelse(p < 0.001, paste0(chichi,"***"),
+        ifelse(p < 0.01, paste0(chichi,"**"),
+          ifelse(p < 0.05, paste0(chichi,"*"), 
+            chichi
+                 ))))
+
+mid_dp <- subset(condition_df2,Diagnosis =="Condition")
+mid_dp$label = Conditions_chi1$label
+
+# middle of plot
+X2_M<- 
+  mid_dp |>
+  ggplot(aes( y= fct_reorder(Variable, -Value)))+
+  geom_text(aes(x = 0, label = Variable), hjust = 0) +
+  geom_text(aes(x = 1, label = label), hjust = 0)+
+  theme_void()  +
+  coord_cartesian(xlim = c(0,1.5))
+
+```
+
+```{r}
+library("patchwork")
+layout <- c(
+  patchwork::area(t = 0, l = 0, b = 30, r = 20),
+  patchwork::area(t = 0, l = 40, b = 30, r = 60),
+  patchwork::area(t = 0, l = 21,b= 30, r =39)
+
+)
+
+X2_L + X2_R + X2_M  + plot_layout(design = layout)
+```
+
+
+
 Create a variable which selects significant health conditions to be used in the multivaraible regression model
 ```{r}
 Conditions_X_use <- Conditions_chi |>
@@ -493,7 +681,6 @@ Conditions_X_use <- Conditions_chi |>
 
 Conditions_X_use
 ```
-
 
 ```{r,include=FALSE}
 # 
@@ -1035,14 +1222,14 @@ EX_FP <-
   theme_classic() +
   #make the forrest plot
   geom_linerange(aes(xmin=OR_low, xmax=OR_high),size = 1, show.legend = FALSE,
-                color = ifelse(fp_df$p.adjusted < 0.05, "darkblue", "darkgrey")) +
+                color = ifelse(fp_df$p.adjusted < 0.05, "#18ab2e", "darkgrey")) +
+      geom_point(aes(x=OR), shape= 16,
+             size=5,show.legend = FALSE, color = "white") +
   geom_point(aes(x=OR), shape= 16,
              size=4,show.legend = FALSE,
-             color = ifelse(fp_df$p.adjusted < 0.05, "darkblue", "darkgrey")) +
-  geom_point(aes(x=OR), shape= 1,
-             size=4,show.legend = FALSE, color = "white") +
-    geom_point(aes(x=OR), shape= 1,
-             size=4.1,show.legend = FALSE, color = "white") +
+             color = ifelse(fp_df$p.adjusted < 0.05, "#18ab2e", "darkgrey")) +
+
+
 
   # geom_errorbar(aes(xmin=OR_low, xmax=OR_high),width =.6, show.legend = FALSE) +
   #change x axis name
@@ -1091,6 +1278,7 @@ layout <- c(
 )
 
 EX_text + EX_FP + plot_layout(design = layout)
+#8.5 X 7.63
 ```
 
 
@@ -1429,11 +1617,11 @@ Negative lower bound CI's indicate non significance. You can see that Athsma, DU
 ### Part 3 join results into on df and create variables for Figures
 
 ```{r rename df}
-# CI.Result <- read.csv("/Users/troyh/Downloads/CI.Result")
-# CI.Result.res <- read.csv("/Users/troyh/Downloads/CI.Result.res")
-# tidy_boot_res <- read_csv("/Users/troyh/Downloads/tidy_boot_res")
-# 
-# tidy_boot <- read_csv("/Users/troyh/Downloads/tidy_boot")
+CI.Result <- read.csv("/Users/troyh/Downloads/CI.Result")
+CI.Result.res <- read.csv("/Users/troyh/Downloads/CI.Result.res")
+tidy_boot_res <- read_csv("/Users/troyh/Downloads/tidy_boot_res")
+
+tidy_boot <- read_csv("/Users/troyh/Downloads/tidy_boot")
 
 #BCa Confidence Intervals around the raw weights
 
@@ -1520,7 +1708,7 @@ wt_df
 
 wt_plot_man <- wt_df |>
   ggplot(aes(x=reorder(Variables,-order),y=Rescaled.RelWeight.percent)) +
-  geom_bar(stat = "identity", color = "Black", width = .75, fill = "#91c3e6" )+
+  geom_bar(stat = "identity", color = "Black", width = .75, fill = "#18ab2e" )+
   geom_errorbar(aes(ymin=res.CI.low.man, ymax=res.CI.high.man,width =.3, show.legend = FALSE)) +
   labs(
     # title = "     Relative Weight (%) Of Predictors On Physical Activity",
@@ -1578,14 +1766,11 @@ wt_plot1 <-
              # size=4,show.legend = FALSE, color="orange")+
   #using circle
   geom_point(aes(x=Rescaled.RelWeight.percent), shape= 16,
+             size=7.5,show.legend = FALSE,color="white")+
+  geom_point(aes(x=Rescaled.RelWeight.percent), shape= 16,
              size=6,show.legend = FALSE, color=
                ifelse(wt_df$res.CI.low.man < 0, "darkgrey", "darkgreen"))+
-  geom_point(aes(x=Rescaled.RelWeight.percent), shape= 1,
-             size=6,show.legend = FALSE,color="white")+
-  geom_point(aes(x=Rescaled.RelWeight.percent), shape= 1,
-             size=6.2,show.legend = FALSE,color="white")+
-    geom_point(aes(x=Rescaled.RelWeight.percent), shape= 1,
-             size=6.4,show.legend = FALSE,color="white")+
+
   #using diamond
   # geom_point(aes(x=Rescaled.RelWeight.percent), shape= 18, 
   #            size=6.5,show.legend = FALSE, color="orange")+
@@ -1616,21 +1801,17 @@ wt_plot2 <-
   #take away background
   theme_classic() +
   #make the forrest plot
-  geom_linerange(aes(xmin=res.CI.low.man, xmax=res.CI.high.man),size = 1, show.legend = FALSE,color = "darkblue")+
-  geom_linerange(aes(xmin=Low2, xmax=High2),size = 2, show.legend = FALSE,color = "darkblue")+ 
-  geom_linerange(aes(xmin=Low1, xmax=High1),size = 3, show.legend = FALSE, color = "darkblue")+
+  geom_linerange(aes(xmin=res.CI.low.man, xmax=res.CI.high.man),size = 1, show.legend = FALSE,color = "#18ab2e")+
+  geom_linerange(aes(xmin=Low2, xmax=High2),size = 2, show.legend = FALSE,color = "#18ab2e")+ 
+  geom_linerange(aes(xmin=Low1, xmax=High1),size = 3, show.legend = FALSE, color = "#18ab2e")+
   #using a box
   # geom_point(aes(x=Rescaled.RelWeight.percent), shape= 15,
              # size=4,show.legend = FALSE, color="orange")+
   #using circle
+      geom_point(aes(x=Rescaled.RelWeight.percent), shape= 5,
+             size=5,show.legend = FALSE,color="white") + 
   geom_point(aes(x=Rescaled.RelWeight.percent), shape= 18,
-             size=5,show.legend = FALSE, color = "darkblue")+
-  geom_point(aes(x=Rescaled.RelWeight.percent), shape= 5,
-             size=4,show.legend = FALSE,color="white")+
-  geom_point(aes(x=Rescaled.RelWeight.percent), shape= 5,
-             size=4.2,show.legend = FALSE,color="white")+
-    geom_point(aes(x=Rescaled.RelWeight.percent), shape= 5,
-             size=4.4,show.legend = FALSE,color="white") + 
+             size=5,show.legend = FALSE, color = "#18ab2e")+
 #change x axis name
   labs(
     x="Weight (%) of variance (R2o) in physical activity",
@@ -1953,9 +2134,9 @@ rf_df<- mutate(rf_df,
                     ifelse(edu == 12, "Bacholars Degree", "Advanced Degree"
                     ))),
       #   Education = as.factor(Education),
-      #     mutate(Obesity = ifelse(is.na(BMI), NA,
-      # ifelse(BMI >=30,1,0)),
-      # Obesity = as.factor(Obesity)
+      Obesity = ifelse(is.na(BMI), NA,
+       ifelse(BMI >=30,1,0)),
+       Obesity = as.factor(Obesity)
       #      ) 
         )
 

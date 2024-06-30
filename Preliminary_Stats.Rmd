@@ -21,11 +21,11 @@ library(haven)
 library(tableone)
   #regression stuff
 library(aod)
-#install.packages("gtsummary")
+# install.packages("gtsummary")
 library(gtsummary)
-#install.packages("lmtest")
+# install.packages("lmtest")
 library(lmtest)
-#install.packages("DescTools")
+# install.packages("DescTools")
 library(DescTools)
 # install.packages("manipulate")
 library(manipulate)
@@ -40,8 +40,18 @@ library(kableExtra)
 ### Import in data
 ```{r}
 ### Import dataset 
-setwd("~/Desktop/Adams_lab/SPSS_stuff")
-NHRVS_2019 <- read_sav("~/Desktop/Adams_lab/SPSS_stuff/NHRVS_2019_2020_FINAL_weighted.sav")
+# setwd("~/Desktop/Adams_lab/SPSS_stuff")
+# NHRVS_2019 <- read_sav("~/Desktop/Adams_lab/SPSS_stuff/NHRVS_2019_2020_FINAL_weighted.sav")
+
+
+#### Import & Select data
+NHRVS_path <- #"/Users/troyh/OneDrive/Documents/R/Data/NHRVS_2019_2020_FINAL_weighted.sav"
+ifelse(Sys.info()[[1]] == "Windows","/Users/troyh/OneDrive/Documents/R/Data/NHRVS_2019_2020_FINAL_weighted.sav",
+       ifelse(Sys.info()[[1]] == "Darwin", "~/Desktop/Adams_lab/SPSS_stuff/NHRVS_2019_2020_FINAL_weighted.sav", "¿¿Donde Estoy??"
+       ))
+
+NHRVS_2019 <- read_sav(NHRVS_path)
+
 
 ### Select and rename Variables
 thesis_NHRVS <- dplyr::select(NHRVS_2019,
@@ -134,7 +144,7 @@ thesis_NHRVS<- thesis_NHRVS %>%
                     Diabetes + Hrt_dis + Hrt_atk + High_chol + High_bld_press +
                     Kid_dis + Migrane + MS + Osteoporosis + Rhum_arth + Stroke,
          Total_MHC = PTSD_Current + MDD_Current + GAD_Current + AUD_Current + DUD_Current,
-         No_Condition = ifelse(Any_MHC == 1 | Any_PHC ==1, 0,1)
+         no_Condition = ifelse(Any_MHC == 1 | Any_PHC ==1, 0,1)
     ) %>%
 
 mutate(thesis_NHRVS,
@@ -241,6 +251,8 @@ thesis_NHRVS <- thesis_NHRVS %>%
   filter(!is.na(AUD_Current)) %>%
   filter(!is.na(DUD_Current)) %>%
   filter(!is.na(GAD_Current)) 
+
+thesis_NHRVS_test$Any_Condition
  
 kable(thesis_NHRVS[1:10,1:8]) %>%
    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
@@ -295,123 +307,10 @@ These descriptive are helpful for us to see how the data looks. Also it can be h
 I wanted to create a visualiation that depicted the number of veterans with or without health conditions within each physical activity level. The following code uses `xtabs()` to run cross tab/ chi squares. I start by extracting the number of veterans, and then convert the table into long data to plot the figure. 
 
 
-Extracting values from chi square tables. 
-```{r}
-#table with and without health conditions
-  xtable2  <- xtabs(~Athsma+Ex_rec,data = thesis_NHRVS)
-  xtable2  <- rbind(xtable2,xtabs(~Arthritis+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~Cancer+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~Chron_pain+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~Liv_dis+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~Diabetes+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~Hrt_dis+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~Hrt_atk+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~High_chol+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~High_bld_press+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~Kid_dis+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~Migrane+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~MS+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~Osteoporosis+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~Rhum_arth+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~Stroke+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~AUD_Current+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~DUD_Current+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~MDD_Current+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~PTSD_Current+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~GAD_Current+Ex_rec,data = thesis_NHRVS))
-  xtable2  <- rbind(xtable2,xtabs(~No_Condition+Ex_rec,data = thesis_NHRVS))
-xtable2<-data.frame(xtable2)
-#create a varaible for diagnosis
-xtable2$condition<- NA
-diagnose<- c("No Condition","Condition")
-xtable2$condition = diagnose
-xtable2
-knitr::kable(xtable2[1:10,]) %>%
-   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
-```
-
-```{r,include=FALSE}
-  var_names = c("Asthma",
-                "Arthritis",
-                "Cancer",
-                "Chron pain",
-                "Liver Disease",
-                "Diabetes",
-                "Heart Disease", 
-                "Heart Attack", 
-                "High Cholesterol", 
-                "Hypertension", 
-                "Kidney Disease", 
-                "Migraine", 
-                "MS", 
-                "Osteoporosis", 
-                "Rheumatoid Arthritis", 
-                "Stroke",
-                "AUD", 
-                "DUD",
-                "MDD", 
-                "PTSD", 
-                "GAD", 
-                "No Condition")
-```
 
 
-Next I manually create a long dataset. I start by creating the variable names needed for the long dataset. 
-```{r}
-#2. Varaible names for table 
- var_names2 = c("Asthsma","Asthsma",
-                "Arthritis", "Arthritis",
-                "Cancer","Cancer",
-                "Chron pain","Chron pain",
-                "Liver Disease","Liver Disease",
-                "Diabetes","Diabetes",
-                "Heart Disease", "Heart Disease",
-                "Heart Attack", "Heart Attack",
-                "High Cholesterol", "High Cholesterol",
-                "Hypertension", "Hypertension", 
-                "Kidney Disease", "Kidney Disease",
-                "Migraine",  "Migraine", 
-                "MS", "MS", 
-                "Osteoporosis", "Osteoporosis",
-                "Rheumatoid Arthritis", "Rheumatoid Arthritis",
-                "Stroke","Stroke",
-                "AUD", "AUD",
-                "DUD","DUD",
-                "MDD",  "MDD", 
-                "PTSD", "PTSD", 
-                "GAD", "GAD", 
-                "No Condition", "No Condition")
-
-var_names2 
-###############START HERE######################
-#3. make long data frame (needed for plot)
-      condition_df2          <- var_names2
-      condition_df2 <- data.frame(condition_df2) 
-      condition_df2 <- rbind(condition_df2,condition_df2)
-      condition_df2[1:88,1]  <- var_names2              
-      condition_df2[1:44,2]  <- xtable2$Insufficient
-      condition_df2[1:44,3]  =  "Insufficient"
-      condition_df2[45:88,2] <- xtable2$Sufficient
-      condition_df2[45:88,3] <- "Sufficient"
-      condition_df2$Diagnosis = xtable2$condition
-      names(condition_df2) <- c("Variable","Value","Ex_rec","Diagnosis")
-      knitr::kable(condition_df2[1:10,]) %>%
-         kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
-```
 
 
-Now that we have the data we can plot it! I use `ggplot()` to plot the figure. As this is a bar chart I use `geom_bar()` and use `position="stack"` to make the stacked bar chart. I used `fct_reorder()` to order the chart in order of the number of veterans reporting that condition. `facet_grid()` was used to seperate the the number of veterans with and without conditions into different figures. Lastly of note, I used `coord_flip()` to put both of the figures on the Y axis. 
-```{r}
-ggplot(condition_df2, aes(fill=Ex_rec, y=Value, x= fct_reorder(Variable, Value))) + 
-  geom_bar(position="stack", stat="identity")+
-  facet_grid(~ Diagnosis)+ 
-  ylab('Number of Veterans') +
-  xlab('Health Condition')+
-  labs(fill='Physical Activity') +
-  theme_classic()+
-  theme(legend.position="none")+
-  coord_flip()
-```
 
 While this figure conveys what I want it to, it doesn't really help me interpret anything and looks bad in my opinion. I wanted to have both stacked bar charts on opposite sides of the variable names. Also I was unable to figure out how to reverse the X axis so I went into **_Illustrator_** and made the figure as I wanted it to look. You can see the final figure below!
 
@@ -429,14 +328,13 @@ The first step in our analysis is to figure out what sociodemographic / military
 ```{r,results="hide"}
 library(tableone)
 EX_Vars <- c("Age", "Male_Gender", "White_Race", "College",     
-                 "Married_Partnered", "Income_60k_plus", "YN_work", "PCS", 
-                 "MCS", "Weight_kg", "BMI", "Combat_Veteran", 
-                 "Yr5_Military", "TOTAL_TRAUMAS", "tot_phc", 
-                 "tot_MHC")
+                 "Married_Partnered", "Income_60k_plus", "YN_work",
+                 "BMI", "Combat_Veteran", 
+                 "Yr5_Military", "TOTAL_TRAUMAS")
 
 EX_catVars     <- c("Male_Gender", "White_Race", "College",     
                  "Married_Partnered", "Income_60k_plus", "YN_work", "Combat_Veteran", 
-                 "Yr5_Military","Ex_3cat")
+                 "Yr5_Military","Ex_rec")
 Exercise_EDA <- CreateTableOne(vars = EX_Vars, strata = "Ex_rec", data = thesis_NHRVS, 
                factorVars = EX_catVars)
 
@@ -446,6 +344,8 @@ full_sample<- CreateTableOne(vars = EX_Vars, data = thesis_NHRVS,
 full_sample <- print(full_sample, formatOptions = list(big.mark = ","))
 test_tab <- print(Exercise_EDA, formatOptions = list(big.mark = ","))
 Demo_tab <- cbind(full_sample, test_tab[,1:4])
+
+
 ```
 
 ```{r}
