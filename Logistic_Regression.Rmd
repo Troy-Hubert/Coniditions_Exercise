@@ -1671,6 +1671,8 @@ wt_df <- RW.Results |>
     High2 = Rescaled.RelWeight.percent + ((2/3)*Dist),
   )
 
+wt_df
+
 #assign variables and put them at the top
   wt_df[10,]   = NA  
   wt_df[10,1]  = "Variable"
@@ -1702,9 +1704,8 @@ wt_df
 
 
 ```{r fig 1,fig.width=8,warning=FALSE,message=FALSE}
-
-
-
+# wt_df$Variables = c("Variable","Age", "Some College", "Income ≥ 60k", "Asthma", "Diabetes",
+                    # "Obesity", "Current DUD", "Current GAD", "Current MDD")
 
 wt_plot_man <- wt_df |>
   ggplot(aes(x=reorder(Variables,-order),y=Rescaled.RelWeight.percent)) +
@@ -1718,7 +1719,9 @@ wt_plot_man <- wt_df |>
   theme_classic() +
   xlab('Variable')+
   ylab('Weight (%) of variance (R2o) in physical activity')+
-  ylim(-3,50)+
+  ylim(-5,50)+
+    geom_text(aes(y=-3, label="Non-Significant Weight", x=3), colour="#ab0e0e", angle=90, vjust = -1, size=4)+
+  geom_segment(aes(x = 5, y = -3.5, xend = 1, yend = -3.5),color="#ab0e0e")+
   # geom_text(aes(label = wt_text), vjust =.5, hjust = -.1, color = "black")+
   coord_flip()  +
     theme(axis.line.y = element_blank(),
@@ -1820,8 +1823,8 @@ wt_plot2 <-
   coord_cartesian(ylim = c(1,length(wt_df$Variables))) +
   #add a line at 1 for reference
   geom_vline(xintercept = 0) +
-  geom_text(aes(x=0, label="No Weight", y=7.5), colour="black", angle=90, vjust = -.7, text=element_text(size=5))+
-  geom_text(aes(x=25, label= "More % of Weight", y=2), colour="black", text=element_text(size=3))+
+  geom_text(aes(x=-3, label="No Significant Weight", y=3), colour="black", angle=90, vjust = -.7, size=3.5)+
+  geom_text(aes(x=30, label= "More % of Weight", y=5), colour="black", size =3.5)+
   #add anotations to help suggests what each side means.
     theme(axis.line.y = element_blank(),
         axis.ticks.y= element_blank(),
@@ -1829,7 +1832,10 @@ wt_plot2 <-
         axis.title.y= element_blank())
 
 wt_plot2
+```
 
+
+```{r,warning=FALSE}
 wt_text_man <- 
   wt_df |>
   ggplot(aes(y = reorder(Variables, -order))) +
@@ -1846,7 +1852,7 @@ wt_text_man <-
 library("patchwork")
 layout <- c(
   patchwork::area(t = 0, l = 0, b = 30, r = 30),
-  patchwork::area(t = 0, l = 22, b = 30, r = 40)
+  patchwork::area(t = 0, l = 24, b = 30, r = 40)
 )
 
 wt_text_man + wt_plot2 + plot_layout(design = layout)
