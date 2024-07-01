@@ -1513,8 +1513,8 @@ Create df and export to csv so you don't need to run stats every time
 CI.Result<-data.frame(Variables=colnames(mydata[2:10]), CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5])
 
 #2.8 Save df as a csv so you can call it again in the future
-write_csv(CI.Result, "/Users/troyh/Downloads/CI.Result")
-write_csv(tidy_boot, "/Users/troyh/Downloads/tidy_boot")
+# write_csv(CI.Result, "/Users/troyh/Downloads/CI.Result")
+# write_csv(tidy_boot, "/Users/troyh/Downloads/tidy_boot")
 
 #2.9 Here is the output using tidy()
 knitr::kable(tidy_boot) %>%
@@ -1540,9 +1540,10 @@ logci<-boot.ci(logBoot,conf=0.95, type="bca")
 numVar = length(mydata)
 test2 <- runBoot(length(mydata[,2:numVar]))
 tidy_boot_res <- tidy(logBoot_adj)
+#DF
 CI.Result.res<<-data.frame(Variables=colnames(mydata[2:10]), CI.Lower.Bound=test2[,4],CI.Upper.Bound=test2[,5])
-write_csv(CI.Result.res, "/Users/troyh/Downloads/CI.Result.res")
-write_csv(tidy_boot_res, "/Users/troyh/Downloads/tidy_boot_res")
+# write_csv(CI.Result.res, "/Users/troyh/Downloads/CI.Result.res")
+# write_csv(tidy_boot_res, "/Users/troyh/Downloads/tidy_boot_res")
 ```
 
 
@@ -1617,11 +1618,10 @@ Negative lower bound CI's indicate non significance. You can see that Athsma, DU
 ### Part 3 join results into on df and create variables for Figures
 
 ```{r rename df}
-CI.Result <- read.csv("/Users/troyh/Downloads/CI.Result")
-CI.Result.res <- read.csv("/Users/troyh/Downloads/CI.Result.res")
-tidy_boot_res <- read_csv("/Users/troyh/Downloads/tidy_boot_res")
-
-tidy_boot <- read_csv("/Users/troyh/Downloads/tidy_boot")
+# CI.Result <- read.csv("/Users/troyh/Downloads/CI.Result")
+# CI.Result.res <- read.csv("/Users/troyh/Downloads/CI.Result.res")
+# tidy_boot_res <- read_csv("/Users/troyh/Downloads/tidy_boot_res")
+# tidy_boot <- read_csv("/Users/troyh/Downloads/tidy_boot")
 
 #BCa Confidence Intervals around the raw weights
 
@@ -1808,19 +1808,20 @@ wt_plot2 <-
   # geom_point(aes(x=Rescaled.RelWeight.percent), shape= 15,
              # size=4,show.legend = FALSE, color="orange")+
   #using circle
-      geom_point(aes(x=Rescaled.RelWeight.percent), shape= 5,
-             size=5,show.legend = FALSE,color="white") + 
+      geom_point(aes(x=Rescaled.RelWeight.percent), shape= 18,
+             size=7,show.legend = FALSE,color="white") + 
   geom_point(aes(x=Rescaled.RelWeight.percent), shape= 18,
-             size=5,show.legend = FALSE, color = "#18ab2e")+
+             size=5.5,show.legend = FALSE, color = "#18ab2e")+
 #change x axis name
   labs(
     x="Weight (%) of variance (R2o) in physical activity",
-    subtitle =".        Relative Weight (%) Of Predictors On Physical Activity" ) +
+    subtitle =".        Bootstraped Weight (%) Of Predictors On Physical Activity" ) +
   #adjust the dimentions.
   coord_cartesian(ylim = c(1,length(wt_df$Variables))) +
   #add a line at 1 for reference
-  geom_vline(xintercept = 0,linetype="dashed",alpha = .50) +
-  
+  geom_vline(xintercept = 0) +
+  geom_text(aes(x=0, label="No Weight", y=7.5), colour="black", angle=90, vjust = -.7, text=element_text(size=5))+
+  geom_text(aes(x=25, label= "More % of Weight", y=2), colour="black", text=element_text(size=3))+
   #add anotations to help suggests what each side means.
     theme(axis.line.y = element_blank(),
         axis.ticks.y= element_blank(),
@@ -1828,10 +1829,7 @@ wt_plot2 <-
         axis.title.y= element_blank())
 
 wt_plot2
-```
 
-
-```{r}
 wt_text_man <- 
   wt_df |>
   ggplot(aes(y = reorder(Variables, -order))) +
@@ -1851,7 +1849,7 @@ layout <- c(
   patchwork::area(t = 0, l = 22, b = 30, r = 40)
 )
 
-wt_text_man + wt_plot1 + plot_layout(design = layout)
+wt_text_man + wt_plot2 + plot_layout(design = layout)
 ```
 
 
