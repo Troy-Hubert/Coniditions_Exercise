@@ -52,6 +52,13 @@ ifelse(Sys.info()[[1]] == "Windows","/Users/troyh/OneDrive/Documents/R/Data/NHRV
 
 NHRVS_2019 <- read_sav(NHRVS_path)
 
+data_path <- #"/Users/troyh/OneDrive/Documents/R/Data/NHRVS_2019_2020_FINAL_weighted.sav"
+ifelse(Sys.info()[[1]] == "Windows",
+       "C:/Users/troyh/OneDrive - University of Kentucky/Coding/data/",
+       ifelse(Sys.info()[[1]] == "Darwin", "~/Desktop/Coding/data/EX_CON_test_dif.csv", "¿¿Donde Estoy??"
+       ))
+
+
 
 ### Select and rename Variables
 thesis_NHRVS <- dplyr::select(NHRVS_2019,
@@ -261,8 +268,8 @@ kable(thesis_NHRVS[1:10,1:8]) %>%
 ## Export new file to CSV
 Now that we have a clean and prepped data file to analyze lets create a CSV of that for future reference.
 ```{r}
-write_csv(thesis_NHRVS, "~/Desktop/Coding/data/Ex_Con_dataset.csv" )
-haven::write_sav(thesis_NHRVS,"~/Desktop/Coding/data/Ex_Con_SPSS.sav")
+# write_csv(thesis_NHRVS, "~/Desktop/Coding/data/Ex_Con_dataset.csv" )
+# haven::write_sav(thesis_NHRVS,"~/Desktop/Coding/data/Ex_Con_SPSS.sav")
 ```
 
 
@@ -316,7 +323,7 @@ While this figure conveys what I want it to, it doesn't really help me interpret
 
 
 ```{r, echo=FALSE, fig.align = "center"}
-knitr::include_graphics("~/Desktop/Coding/R working directory/plots/Xtabs_thesis.png")
+# knitr::include_graphics("~/Desktop/Coding/R working directory/plots/Xtabs_thesis.png")
 ```
 
 ## Exploratory Data Analysis (EDA)
@@ -345,6 +352,9 @@ full_sample <- print(full_sample, formatOptions = list(big.mark = ","))
 test_tab <- print(Exercise_EDA, formatOptions = list(big.mark = ","))
 Demo_tab <- cbind(full_sample, test_tab[,1:4])
 
+write.csv(Demo_tab,"C:/Users/troyh/Downloads/Demo_tab_basic_EX_CON1.csv")
+
+
 
 ```
 
@@ -364,45 +374,45 @@ These variables should be used for the regressions/ancovas
 #### Associations With Health Conditions
 Next I am going to look at how covaaraites relate to both physical health and mental health conditions. I am going to repeat the same analysis as above with `CreateTableOne()` except I am changing `strata =` to any mental health condition (`"Any_MHC`) or any physical health condition (`Any_PHC`).
 ```{r,results="hide"}
-MH_Vars <- c("Age", "Male_Gender", "White_Race", "College",     
-                 "Married_Partnered", "Income_60k_plus", "YN_work", "PCS", 
-                 "MCS", "Weight_kg", "BMI", "Combat_Veteran", 
-                 "Yr5_Military", "TOTAL_TRAUMAS", "tot_phc", 
-                 "tot_MHC")
-
-MH_catVars     <- c("Male_Gender", "White_Race", "College",     
-                 "Married_Partnered", "Income_60k_plus", "YN_work",   "Combat_Veteran", 
-                 "Yr5_Military","Any_MHC")
-MH_EDA <- CreateTableOne(vars = MH_Vars, strata = "Any_MHC", data = thesis_NHRVS, 
-               factorVars = MH_catVars)
-
-
-mh_tab <- print(MH_EDA, formatOptions = list(big.mark = ","))
-Demo_tab <- cbind(Demo_tab,mh_tab[,1:3])
-
-PH_Vars <- c("Age", "Male_Gender", "White_Race", "College",     
-                 "Married_Partnered", "Income_60k_plus", "YN_work", "PCS", 
-                 "MCS", "Weight_kg", "BMI", "Combat_Veteran", 
-                 "Yr5_Military", "TOTAL_TRAUMAS", "tot_phc", 
-                 "tot_MHC")
-
-PH_catVars     <- c("Male_Gender", "White_Race", "College",     
-                 "Married_Partnered", "Income_60k_plus", "YN_work", "Combat_Veteran", 
-                 "Yr5_Military","Any_PHC")
-
-PH_EDA <- CreateTableOne(vars = MH_Vars, strata = "Any_PHC", data = thesis_NHRVS, 
-               factorVars = MH_catVars)
-
-ph_tab <- print(PH_EDA, formatOptions = list(big.mark = ","))
-Demo_tab <- cbind(Demo_tab,ph_tab[,1:3])
+# MH_Vars <- c("Age", "Male_Gender", "White_Race", "College",     
+#                  "Married_Partnered", "Income_60k_plus", "YN_work", "PCS", 
+#                  "MCS", "Weight_kg", "BMI", "Combat_Veteran", 
+#                  "Yr5_Military", "TOTAL_TRAUMAS", "tot_phc", 
+#                  "tot_MHC")
+# 
+# MH_catVars     <- c("Male_Gender", "White_Race", "College",     
+#                  "Married_Partnered", "Income_60k_plus", "YN_work",   "Combat_Veteran", 
+#                  "Yr5_Military","Any_MHC")
+# MH_EDA <- CreateTableOne(vars = MH_Vars, strata = "Any_MHC", data = thesis_NHRVS, 
+#                factorVars = MH_catVars)
+# 
+# 
+# mh_tab <- print(MH_EDA, formatOptions = list(big.mark = ","))
+# Demo_tab <- cbind(Demo_tab,mh_tab[,1:3])
+# 
+# PH_Vars <- c("Age", "Male_Gender", "White_Race", "College",     
+#                  "Married_Partnered", "Income_60k_plus", "YN_work", "PCS", 
+#                  "MCS", "Weight_kg", "BMI", "Combat_Veteran", 
+#                  "Yr5_Military", "TOTAL_TRAUMAS", "tot_phc", 
+#                  "tot_MHC")
+# 
+# PH_catVars     <- c("Male_Gender", "White_Race", "College",     
+#                  "Married_Partnered", "Income_60k_plus", "YN_work", "Combat_Veteran", 
+#                  "Yr5_Military","Any_PHC")
+# 
+# PH_EDA <- CreateTableOne(vars = MH_Vars, strata = "Any_PHC", data = thesis_NHRVS, 
+#                factorVars = MH_catVars)
+# 
+# ph_tab <- print(PH_EDA, formatOptions = list(big.mark = ","))
+# Demo_tab <- cbind(Demo_tab,ph_tab[,1:3])
 ```
 
 Now that I have created the tables, I can combine these with the physical activity level. The resulting table `Demo_tab` will be used in the paper. 
 ```{r}
 Demo_tab<- as.data.frame(Demo_tab)
-kbl(Demo_tab[1:10,]) %>%
-   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
-write_csv(Demo_tab, "~/Desktop/Coding/data/Demo_tab_basic_EX_CON.csv")
+# kbl(Demo_tab[1:10,]) %>%
+#    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+# write.csv(Demo_tab, paste0(data_path,"Demo_tab_basic_EX_CON.csv"))
 ```
 
 ## Test of difference
@@ -461,16 +471,16 @@ test_act_vars <- append(test_act_vars,'YN_work')
 Activity_val <- append(Activity_val,summary(YN_work_test_act)[[3]])
 Activity_p <- append(Activity_p,summary(YN_work_test_act)[[6]])
 
-#PCS
-PCS_test_act <- t.test(PCS~ Ex_rec, data = thesis_NHRVS)
-test_act_vars <- append(test_act_vars,'PCS')
-Activity_val = append(Activity_val,PCS_test_act$statistic)
-Activity_p = append(Activity_p,PCS_test_act$p.value)
-#MCS
-MCS_test_act <- t.test(MCS~ Ex_rec, data = thesis_NHRVS)
-test_act_vars <- append(test_act_vars,'MCS')
-Activity_val <- append(Activity_val,MCS_test_act$statistic)
-Activity_p <- append(Activity_p,MCS_test_act$p.value)
+# #PCS
+# PCS_test_act <- t.test(PCS~ Ex_rec, data = thesis_NHRVS)
+# test_act_vars <- append(test_act_vars,'PCS')
+# Activity_val = append(Activity_val,PCS_test_act$statistic)
+# Activity_p = append(Activity_p,PCS_test_act$p.value)
+# #MCS
+# MCS_test_act <- t.test(MCS~ Ex_rec, data = thesis_NHRVS)
+# test_act_vars <- append(test_act_vars,'MCS')
+# Activity_val <- append(Activity_val,MCS_test_act$statistic)
+# Activity_p <- append(Activity_p,MCS_test_act$p.value)
 
 #BMI
 BMI_test_act <- t.test(MCS~ Ex_rec, data = thesis_NHRVS)
@@ -497,172 +507,183 @@ test_act_vars <- append(test_act_vars,'TOTAL TRAUMAS')
 Activity_val = append(Activity_val,TOTAL_TRAUMAS_test_act$statistic)
 Activity_p = append(Activity_p,TOTAL_TRAUMAS_test_act$p.value)
 
-#TOTAL Physical Health Conditions
-tot_phc_test_act <- t.test(tot_phc~ Ex_rec, data = thesis_NHRVS)
-test_act_vars <- append(test_act_vars,'Total_PHC')
-Activity_val = append(Activity_val,tot_phc_test_act$statistic)
-Activity_p = append(Activity_p,tot_phc_test_act$p.value)
-
-#TOTAL Physical Health Conditions
-tot_MHC_test_act <- t.test(tot_MHC~ Ex_rec, data = thesis_NHRVS)
-test_act_vars <- append(test_act_vars,'Total MHC')
-Activity_val = append(Activity_val,tot_MHC_test_act$statistic)
-Activity_p = append(Activity_p,tot_MHC_test_act$p.value)
+# #TOTAL Physical Health Conditions
+# tot_phc_test_act <- t.test(tot_phc~ Ex_rec, data = thesis_NHRVS)
+# test_act_vars <- append(test_act_vars,'Total_PHC')
+# Activity_val = append(Activity_val,tot_phc_test_act$statistic)
+# Activity_p = append(Activity_p,tot_phc_test_act$p.value)
+# 
+# #TOTAL Physical Health Conditions
+# tot_MHC_test_act <- t.test(tot_MHC~ Ex_rec, data = thesis_NHRVS)
+# test_act_vars <- append(test_act_vars,'Total MHC')
+# Activity_val = append(Activity_val,tot_MHC_test_act$statistic)
+# Activity_p = append(Activity_p,tot_MHC_test_act$p.value)
 ```
 
 Now that we have extracted all of the values, we can create a data frame for all of the test of difference values. We use `cbind()` to combine the test of difference values with the p values.
 ```{r}
 val_df <- data.frame(test_act_vars,Activity_val)
 val_df <- cbind(val_df,Activity_p)
+val_df <- val_df |>
+  mutate(X_or_t = 
+           ifelse(Activity_p < 0.001, paste0(round(Activity_val,2),"***"),
+                  ifelse(Activity_p < 0.01, paste0(round(Activity_val,2),"**"),
+                         ifelse(Activity_p < 0.05, paste0(round(Activity_val,2),"*"),
+                                round(Activity_val,2)
+                         ))))
+val_df
+           
+write.csv(val_df, "C:/Users/troyh/Downloads/EX_CON_test_dif1.csv" )
+data_path
 ```
 #### Physical and Mental health Conditions
 The same analysis will be conducted for these covariates by physical and mental health condition as well. 
 
 ```{r,include=FALSE}
-#### Create test of difference values and put them into a table
-#Age
-PHC_val <- c(t.test(thesis_NHRVS$Age~thesis_NHRVS$Any_PHC)[[1]])
-PHC_p <- c(t.test(thesis_NHRVS$Age~thesis_NHRVS$Any_PHC)[[3]])
-
-#Gender
-Male_test_PHC<- xtabs(~Any_PHC+Male_Gender, data=thesis_NHRVS)
-summary(Male_test_PHC)
-PHC_val <- append(PHC_val,Male_test_PHC[[3]])
-PHC_p <- append(PHC_p,summary(Male_test_PHC)[[6]])
-
-#White
-White_test_PHC<- xtabs(~Any_PHC+White_Race, data=thesis_NHRVS)
-PHC_val <- append(PHC_val,summary(White_test_PHC)[[3]])
-PHC_p <- append(PHC_p,summary(White_test_PHC)[[6]])
-
-#some College
-College_test_PHC<- xtabs(~Any_PHC+College, data=thesis_NHRVS)
-PHC_val <- append(PHC_val,summary(College_test_PHC)[[3]])
-PHC_p <- append(PHC_p,summary(College_test_PHC)[[6]])
-
-#Married_Partnered
-Married_Partnered_test_PHC<- xtabs(~Any_PHC+Married_Partnered, data=thesis_NHRVS)
-PHC_val <- append(PHC_val,summary(Married_Partnered_test_PHC)[[3]])
-PHC_p <- append(PHC_p,summary(Married_Partnered_test_PHC)[[6]])
-
-#Income_60k_plus
-Income_60k_plus_test_PHC<- xtabs(~Any_PHC+Income_60k_plus, data=thesis_NHRVS)
-PHC_val <- append(PHC_val,summary(Income_60k_plus_test_PHC)[[3]])
-PHC_p <- append(PHC_p,summary(Income_60k_plus_test_PHC)[[6]])
-
-#YN_work
-YN_work_test_PHC<- xtabs(~Any_PHC+YN_work, data=thesis_NHRVS)
-PHC_val <- append(PHC_val,summary(YN_work_test_PHC)[[3]])
-PHC_p <- append(PHC_p,summary(YN_work_test_PHC)[[6]])
-
-#PCS
-PHC_val <- append(PHC_val, t.test(thesis_NHRVS$PCS~thesis_NHRVS$Any_PHC)[[1]])
-PHC_p <- append(PHC_p, t.test(thesis_NHRVS$PCS~thesis_NHRVS$Any_PHC)[[3]])
-
-#MCS
-PHC_val <- append(PHC_val, t.test(thesis_NHRVS$MCS~thesis_NHRVS$Any_PHC)[[1]])
-PHC_p <- append(PHC_p, t.test(thesis_NHRVS$MCS~thesis_NHRVS$Any_PHC)[[3]])
-
-#BMI
-PHC_val <- append(PHC_val, t.test(thesis_NHRVS$BMI~thesis_NHRVS$Any_PHC)[[1]])
-PHC_p <- append(PHC_p, t.test(thesis_NHRVS$BMI~thesis_NHRVS$Any_PHC)[[3]])
-
-#Combat_Veteran
-Combat_Veteran_test_PHC<- xtabs(~Any_PHC+Combat_Veteran, data=thesis_NHRVS)
-PHC_val <- append(PHC_val,summary(Combat_Veteran_test_PHC)[[3]])
-PHC_p <- append(PHC_p,summary(Combat_Veteran_test_PHC)[[6]])
-
-#Yr5_Military
-Yr5_Military_test_PHC<- xtabs(~Any_PHC+Yr5_Military, data=thesis_NHRVS)
-PHC_val <- append(PHC_val,summary(Yr5_Military_test_PHC)[[3]])
-PHC_p <- append(PHC_p,summary(Yr5_Military_test_PHC)[[6]])
-
-#TOTAL TRAUMAS
-PHC_val <- append(PHC_val, t.test(thesis_NHRVS$TOTAL_TRAUMAS~thesis_NHRVS$Any_PHC)[[1]])
-PHC_p <- append(PHC_p, t.test(thesis_NHRVS$TOTAL_TRAUMAS~thesis_NHRVS$Any_PHC)[[3]])
-
-#TOTAL Physical Health Conditions
-PHC_val <- append(PHC_val, t.test(thesis_NHRVS$tot_phc~thesis_NHRVS$Any_PHC)[[1]])
-PHC_p <- append(PHC_p, t.test(thesis_NHRVS$tot_phc~thesis_NHRVS$Any_PHC)[[3]])
-
-t.test(thesis_NHRVS$tot_phc~thesis_NHRVS$Any_PHC)
-
-#TOTAL Mental Health Conditions
-PHC_val <- append(PHC_val, t.test(thesis_NHRVS$tot_MHC~thesis_NHRVS$Any_PHC)[[1]])
-PHC_p <- append(PHC_p, t.test(thesis_NHRVS$tot_MHC~thesis_NHRVS$Any_PHC)[[3]])
-
-# Combine into one DF
-val_df <- cbind(val_df,PHC_val,PHC_p)
-
-#### Create test of difference values and put them into a table
-#Age
-MHC_val <- c(t.test(thesis_NHRVS$Age~thesis_NHRVS$Any_MHC)[[1]])
-MHC_p <- c(t.test(thesis_NHRVS$Age~thesis_NHRVS$Any_MHC)[[3]])
-
-#Gender
-Male_test_MHC<- xtabs(~Any_MHC+Male_Gender, data=thesis_NHRVS)
-summary(Male_test_MHC)
-MHC_val <- append(MHC_val,Male_test_MHC[[3]])
-MHC_p <- append(MHC_p,summary(Male_test_MHC)[[6]])
-
-#White
-White_test_MHC<- xtabs(~Any_MHC+White_Race, data=thesis_NHRVS)
-MHC_val <- append(MHC_val,summary(White_test_MHC)[[3]])
-MHC_p <- append(MHC_p,summary(White_test_MHC)[[6]])
-
-#some College
-College_test_MHC<- xtabs(~Any_MHC+College, data=thesis_NHRVS)
-MHC_val <- append(MHC_val,summary(College_test_MHC)[[3]])
-MHC_p <- append(MHC_p,summary(College_test_MHC)[[6]])
-
-#Married_Partnered
-Married_Partnered_test_MHC<- xtabs(~Any_MHC+Married_Partnered, data=thesis_NHRVS)
-MHC_val <- append(MHC_val,summary(Married_Partnered_test_MHC)[[3]])
-MHC_p <- append(MHC_p,summary(Married_Partnered_test_MHC)[[6]])
-
-#Income_60k_plus
-Income_60k_plus_test_MHC<- xtabs(~Any_MHC+Income_60k_plus, data=thesis_NHRVS)
-MHC_val <- append(MHC_val,summary(Income_60k_plus_test_MHC)[[3]])
-MHC_p <- append(MHC_p,summary(Income_60k_plus_test_MHC)[[6]])
-
-#YN_work
-YN_work_test_MHC<- xtabs(~Any_MHC+YN_work, data=thesis_NHRVS)
-MHC_val <- append(MHC_val,summary(YN_work_test_MHC)[[3]])
-MHC_p <- append(MHC_p,summary(YN_work_test_MHC)[[6]])
-
-#PCS
-MHC_val <- append(MHC_val, t.test(thesis_NHRVS$PCS~thesis_NHRVS$Any_MHC)[[1]])
-MHC_p <- append(MHC_p, t.test(thesis_NHRVS$PCS~thesis_NHRVS$Any_MHC)[[3]])
-
-#MCS
-MHC_val <- append(MHC_val, t.test(thesis_NHRVS$MCS~thesis_NHRVS$Any_MHC)[[1]])
-MHC_p <- append(MHC_p, t.test(thesis_NHRVS$MCS~thesis_NHRVS$Any_MHC)[[3]])
-
-#BMI
-MHC_val <- append(MHC_val, t.test(thesis_NHRVS$BMI~thesis_NHRVS$Any_MHC)[[1]])
-MHC_p <- append(MHC_p, t.test(thesis_NHRVS$BMI~thesis_NHRVS$Any_MHC)[[3]])
-
-#Combat_Veteran
-Combat_Veteran_test_MHC<- xtabs(~Any_MHC+Combat_Veteran, data=thesis_NHRVS)
-MHC_val <- append(MHC_val,summary(Combat_Veteran_test_MHC)[[3]])
-MHC_p <- append(MHC_p,summary(Combat_Veteran_test_MHC)[[6]])
-
-#Yr5_Military
-Yr5_Military_test_MHC<- xtabs(~Any_MHC+Yr5_Military, data=thesis_NHRVS)
-MHC_val <- append(MHC_val,summary(Yr5_Military_test_MHC)[[3]])
-MHC_p <- append(MHC_p,summary(Yr5_Military_test_MHC)[[6]])
-
-#TOTAL TRAUMAS
-MHC_val <- append(MHC_val, t.test(thesis_NHRVS$TOTAL_TRAUMAS~thesis_NHRVS$Any_MHC)[[1]])
-MHC_p <- append(MHC_p, t.test(thesis_NHRVS$TOTAL_TRAUMAS~thesis_NHRVS$Any_MHC)[[3]])
-
-#TOTAL Physical Health Conditions
-MHC_val <- append(MHC_val, t.test(thesis_NHRVS$tot_MHC~thesis_NHRVS$Any_MHC)[[1]])
-MHC_p <- append(MHC_p, t.test(thesis_NHRVS$tot_MHC~thesis_NHRVS$Any_MHC)[[3]])
-
-#TOTAL Physical Health Conditions
-MHC_val <- append(MHC_val, t.test(thesis_NHRVS$tot_phc~thesis_NHRVS$Any_MHC)[[1]])
-MHC_p <- append(MHC_p, t.test(thesis_NHRVS$tot_phc~thesis_NHRVS$Any_MHC)[[3]])
+# #### Create test of difference values and put them into a table
+# #Age
+# PHC_val <- c(t.test(thesis_NHRVS$Age~thesis_NHRVS$Any_PHC)[[1]])
+# PHC_p <- c(t.test(thesis_NHRVS$Age~thesis_NHRVS$Any_PHC)[[3]])
+# 
+# #Gender
+# Male_test_PHC<- xtabs(~Any_PHC+Male_Gender, data=thesis_NHRVS)
+# summary(Male_test_PHC)
+# PHC_val <- append(PHC_val,Male_test_PHC[[3]])
+# PHC_p <- append(PHC_p,summary(Male_test_PHC)[[6]])
+# 
+# #White
+# White_test_PHC<- xtabs(~Any_PHC+White_Race, data=thesis_NHRVS)
+# PHC_val <- append(PHC_val,summary(White_test_PHC)[[3]])
+# PHC_p <- append(PHC_p,summary(White_test_PHC)[[6]])
+# 
+# #some College
+# College_test_PHC<- xtabs(~Any_PHC+College, data=thesis_NHRVS)
+# PHC_val <- append(PHC_val,summary(College_test_PHC)[[3]])
+# PHC_p <- append(PHC_p,summary(College_test_PHC)[[6]])
+# 
+# #Married_Partnered
+# Married_Partnered_test_PHC<- xtabs(~Any_PHC+Married_Partnered, data=thesis_NHRVS)
+# PHC_val <- append(PHC_val,summary(Married_Partnered_test_PHC)[[3]])
+# PHC_p <- append(PHC_p,summary(Married_Partnered_test_PHC)[[6]])
+# 
+# #Income_60k_plus
+# Income_60k_plus_test_PHC<- xtabs(~Any_PHC+Income_60k_plus, data=thesis_NHRVS)
+# PHC_val <- append(PHC_val,summary(Income_60k_plus_test_PHC)[[3]])
+# PHC_p <- append(PHC_p,summary(Income_60k_plus_test_PHC)[[6]])
+# 
+# #YN_work
+# YN_work_test_PHC<- xtabs(~Any_PHC+YN_work, data=thesis_NHRVS)
+# PHC_val <- append(PHC_val,summary(YN_work_test_PHC)[[3]])
+# PHC_p <- append(PHC_p,summary(YN_work_test_PHC)[[6]])
+# 
+# #PCS
+# PHC_val <- append(PHC_val, t.test(thesis_NHRVS$PCS~thesis_NHRVS$Any_PHC)[[1]])
+# PHC_p <- append(PHC_p, t.test(thesis_NHRVS$PCS~thesis_NHRVS$Any_PHC)[[3]])
+# 
+# #MCS
+# PHC_val <- append(PHC_val, t.test(thesis_NHRVS$MCS~thesis_NHRVS$Any_PHC)[[1]])
+# PHC_p <- append(PHC_p, t.test(thesis_NHRVS$MCS~thesis_NHRVS$Any_PHC)[[3]])
+# 
+# #BMI
+# PHC_val <- append(PHC_val, t.test(thesis_NHRVS$BMI~thesis_NHRVS$Any_PHC)[[1]])
+# PHC_p <- append(PHC_p, t.test(thesis_NHRVS$BMI~thesis_NHRVS$Any_PHC)[[3]])
+# 
+# #Combat_Veteran
+# Combat_Veteran_test_PHC<- xtabs(~Any_PHC+Combat_Veteran, data=thesis_NHRVS)
+# PHC_val <- append(PHC_val,summary(Combat_Veteran_test_PHC)[[3]])
+# PHC_p <- append(PHC_p,summary(Combat_Veteran_test_PHC)[[6]])
+# 
+# #Yr5_Military
+# Yr5_Military_test_PHC<- xtabs(~Any_PHC+Yr5_Military, data=thesis_NHRVS)
+# PHC_val <- append(PHC_val,summary(Yr5_Military_test_PHC)[[3]])
+# PHC_p <- append(PHC_p,summary(Yr5_Military_test_PHC)[[6]])
+# 
+# #TOTAL TRAUMAS
+# PHC_val <- append(PHC_val, t.test(thesis_NHRVS$TOTAL_TRAUMAS~thesis_NHRVS$Any_PHC)[[1]])
+# PHC_p <- append(PHC_p, t.test(thesis_NHRVS$TOTAL_TRAUMAS~thesis_NHRVS$Any_PHC)[[3]])
+# 
+# #TOTAL Physical Health Conditions
+# PHC_val <- append(PHC_val, t.test(thesis_NHRVS$tot_phc~thesis_NHRVS$Any_PHC)[[1]])
+# PHC_p <- append(PHC_p, t.test(thesis_NHRVS$tot_phc~thesis_NHRVS$Any_PHC)[[3]])
+# 
+# t.test(thesis_NHRVS$tot_phc~thesis_NHRVS$Any_PHC)
+# 
+# #TOTAL Mental Health Conditions
+# PHC_val <- append(PHC_val, t.test(thesis_NHRVS$tot_MHC~thesis_NHRVS$Any_PHC)[[1]])
+# PHC_p <- append(PHC_p, t.test(thesis_NHRVS$tot_MHC~thesis_NHRVS$Any_PHC)[[3]])
+# 
+# # Combine into one DF
+# val_df <- cbind(val_df,PHC_val,PHC_p)
+# 
+# #### Create test of difference values and put them into a table
+# #Age
+# MHC_val <- c(t.test(thesis_NHRVS$Age~thesis_NHRVS$Any_MHC)[[1]])
+# MHC_p <- c(t.test(thesis_NHRVS$Age~thesis_NHRVS$Any_MHC)[[3]])
+# 
+# #Gender
+# Male_test_MHC<- xtabs(~Any_MHC+Male_Gender, data=thesis_NHRVS)
+# summary(Male_test_MHC)
+# MHC_val <- append(MHC_val,Male_test_MHC[[3]])
+# MHC_p <- append(MHC_p,summary(Male_test_MHC)[[6]])
+# 
+# #White
+# White_test_MHC<- xtabs(~Any_MHC+White_Race, data=thesis_NHRVS)
+# MHC_val <- append(MHC_val,summary(White_test_MHC)[[3]])
+# MHC_p <- append(MHC_p,summary(White_test_MHC)[[6]])
+# 
+# #some College
+# College_test_MHC<- xtabs(~Any_MHC+College, data=thesis_NHRVS)
+# MHC_val <- append(MHC_val,summary(College_test_MHC)[[3]])
+# MHC_p <- append(MHC_p,summary(College_test_MHC)[[6]])
+# 
+# #Married_Partnered
+# Married_Partnered_test_MHC<- xtabs(~Any_MHC+Married_Partnered, data=thesis_NHRVS)
+# MHC_val <- append(MHC_val,summary(Married_Partnered_test_MHC)[[3]])
+# MHC_p <- append(MHC_p,summary(Married_Partnered_test_MHC)[[6]])
+# 
+# #Income_60k_plus
+# Income_60k_plus_test_MHC<- xtabs(~Any_MHC+Income_60k_plus, data=thesis_NHRVS)
+# MHC_val <- append(MHC_val,summary(Income_60k_plus_test_MHC)[[3]])
+# MHC_p <- append(MHC_p,summary(Income_60k_plus_test_MHC)[[6]])
+# 
+# #YN_work
+# YN_work_test_MHC<- xtabs(~Any_MHC+YN_work, data=thesis_NHRVS)
+# MHC_val <- append(MHC_val,summary(YN_work_test_MHC)[[3]])
+# MHC_p <- append(MHC_p,summary(YN_work_test_MHC)[[6]])
+# 
+# #PCS
+# MHC_val <- append(MHC_val, t.test(thesis_NHRVS$PCS~thesis_NHRVS$Any_MHC)[[1]])
+# MHC_p <- append(MHC_p, t.test(thesis_NHRVS$PCS~thesis_NHRVS$Any_MHC)[[3]])
+# 
+# #MCS
+# MHC_val <- append(MHC_val, t.test(thesis_NHRVS$MCS~thesis_NHRVS$Any_MHC)[[1]])
+# MHC_p <- append(MHC_p, t.test(thesis_NHRVS$MCS~thesis_NHRVS$Any_MHC)[[3]])
+# 
+# #BMI
+# MHC_val <- append(MHC_val, t.test(thesis_NHRVS$BMI~thesis_NHRVS$Any_MHC)[[1]])
+# MHC_p <- append(MHC_p, t.test(thesis_NHRVS$BMI~thesis_NHRVS$Any_MHC)[[3]])
+# 
+# #Combat_Veteran
+# Combat_Veteran_test_MHC<- xtabs(~Any_MHC+Combat_Veteran, data=thesis_NHRVS)
+# MHC_val <- append(MHC_val,summary(Combat_Veteran_test_MHC)[[3]])
+# MHC_p <- append(MHC_p,summary(Combat_Veteran_test_MHC)[[6]])
+# 
+# #Yr5_Military
+# Yr5_Military_test_MHC<- xtabs(~Any_MHC+Yr5_Military, data=thesis_NHRVS)
+# MHC_val <- append(MHC_val,summary(Yr5_Military_test_MHC)[[3]])
+# MHC_p <- append(MHC_p,summary(Yr5_Military_test_MHC)[[6]])
+# 
+# #TOTAL TRAUMAS
+# MHC_val <- append(MHC_val, t.test(thesis_NHRVS$TOTAL_TRAUMAS~thesis_NHRVS$Any_MHC)[[1]])
+# MHC_p <- append(MHC_p, t.test(thesis_NHRVS$TOTAL_TRAUMAS~thesis_NHRVS$Any_MHC)[[3]])
+# 
+# #TOTAL Physical Health Conditions
+# MHC_val <- append(MHC_val, t.test(thesis_NHRVS$tot_MHC~thesis_NHRVS$Any_MHC)[[1]])
+# MHC_p <- append(MHC_p, t.test(thesis_NHRVS$tot_MHC~thesis_NHRVS$Any_MHC)[[3]])
+# 
+# #TOTAL Physical Health Conditions
+# MHC_val <- append(MHC_val, t.test(thesis_NHRVS$tot_phc~thesis_NHRVS$Any_MHC)[[1]])
+# MHC_p <- append(MHC_p, t.test(thesis_NHRVS$tot_phc~thesis_NHRVS$Any_MHC)[[3]])
 ```
 
 #### Combine into one table
@@ -671,14 +692,14 @@ Now that we have the test of differences for our covariates by physical activity
 ```{r}
 # val_df <- cbind(val_df,PHC_val,PHC_p)
 # val_df <- cbind(val_df,MHC_val,MHC_p)
-val_df
-kbl(val_df) %>%
-   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+# val_df
+# kbl(val_df) %>%
+#    kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
 ### Export to CSV
 ```{r}
-write_csv(val_df, "~/Desktop/Coding/data/EX_CON_test_dif.csv" )
+# write.csv(val_df, paste0(data_path,"EX_CON_test_dif.csv" ))
 ```
 
 
